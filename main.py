@@ -11,8 +11,6 @@ import re
 import sqlite3
 import logging
 from time import gmtime, strftime
-import pprint
-
 
 #############################################
 #                                           #
@@ -34,7 +32,6 @@ fileHandler.setFormatter(logFormatter)
 logger.addHandler(fileHandler)
 """
 
-
 #############################################
 #                                           #
 #  CONFIGURATION                            #
@@ -46,7 +43,6 @@ adminid = 0000000
 adminmail = 'your@email.com'
 mainbottoken = "yourmainbottoken"
 logbottoken = "yourlogbottoken"
-
 
 bot = telebot.TeleBot(mainbottoken)
 logbot = telebot.TeleBot(logbottoken)
@@ -145,7 +141,9 @@ def send_log(message):
     groupinfo = ""
     if is_group(message):
         groupinfo = "nel gruppo %s (%s)" % (message.chat.title, message.chat.id)
-    testo = "[%s]\n@%s\n(%s %s - %s)\n\n%s\n\n%s" % (timestamp, message.from_user.username, message.from_user.first_name, message.from_user.last_name, message.from_user.id, message.text, groupinfo)
+    testo = "[%s]\n@%s\n(%s %s - %s)\n\n%s\n\n%s" % (
+    timestamp, message.from_user.username, message.from_user.first_name, message.from_user.last_name,
+    message.from_user.id, message.text, groupinfo)
     logbot.send_message(adminid, testo)
 
 
@@ -167,11 +165,14 @@ def greetings(message):
     if not is_banned(message.new_chat_participant.id):
         if check_and_add(message.new_chat_participant.id, message.new_chat_participant.username):
             timestamp = strftime("%Y-%m-%d %H:%M:%S")
-            logbot.send_message(adminid, "[%s]\n@%s\n(%s %s - %s) è stato aggiunto a %s" % (timestamp, message.new_chat_participant.username, message.new_chat_participant.first_name, message.new_chat_participant.last_name, message.new_chat_participant.id, message.chat.title))
+            logbot.send_message(adminid, "[%s]\n@%s\n(%s %s - %s) è stato aggiunto a %s" % (
+            timestamp, message.new_chat_participant.username, message.new_chat_participant.first_name,
+            message.new_chat_participant.last_name, message.new_chat_participant.id, message.chat.title))
             name = message.new_chat_participant.first_name
             if message.new_chat_participant.username is not None:
                 name = "@%s" % message.new_chat_participant.username
-            bot.reply_to(message, "Hi there %s!\nI am TagAlertBot, at your service.\nType /help to know something more about me!" % name)
+            bot.reply_to(message,
+                         "Hi there %s!\nI am TagAlertBot, at your service.\nType /help to know something more about me!" % name)
 
 
 # /start or /help: Explain bot's features and add user if not present in DB
@@ -191,17 +192,20 @@ def enablealerts(message):
     if not is_banned(message.from_user.id) and is_private(message):
         if message.from_user.username is None:
             # No username set
-            bot.send_message(message.chat.id, "I'm sorry. You can't use this feature.\nYou need to set an username from Telegram's settings.")
+            bot.send_message(message.chat.id,
+                             "I'm sorry. You can't use this feature.\nYou need to set an username from Telegram's settings.")
 
         else:
             if not check_user(message.from_user.id):
-                #Not present in database, let's add him
+                # Not present in database, let's add him
                 add_user(message.from_user.id, message.from_user.username, 1, 0)
             else:
-                #Present in database, enable alerts and update the username (even if not needed)
+                # Present in database, enable alerts and update the username (even if not needed)
                 update_user(message.from_user.id, message.from_user.username, 1, 0)
 
-            bot.send_message(message.chat.id, "Alerts successfully *enabled*.\nFeel free to leave a /feedback sharing your experience.", parse_mode="markdown")
+            bot.send_message(message.chat.id,
+                             "Alerts successfully *enabled*.\nFeel free to leave a /feedback sharing your experience.",
+                             parse_mode="markdown")
 
     else:
         bot.reply_to(message, "*Warning:* this command works only in private chat!", parse_mode="markdown")
@@ -214,17 +218,20 @@ def disablealerts(message):
     if not is_banned(message.from_user.id):
         if is_private(message):
             if message.from_user.username is None:
-                bot.send_message(message.chat.id, "I'm sorry. You can't use this feature.\nYou need to set an username from Telegram's settings.")
+                bot.send_message(message.chat.id,
+                                 "I'm sorry. You can't use this feature.\nYou need to set an username from Telegram's settings.")
 
             else:
                 if not check_user(message.from_user.id):
-                    #Not present in database, let's add him
+                    # Not present in database, let's add him
                     add_user(message.from_user.id, message.from_user.username, 0, 0)
                 else:
-                    #Present in database, enable alerts and update the username (even if not needed)
+                    # Present in database, enable alerts and update the username (even if not needed)
                     update_user(message.from_user.id, message.from_user.username, 0, 0)
 
-                bot.send_message(message.chat.id, "Alerts succesfully *disabled*.\nTake a second to give me a /feedback of your experience with the bot.\nRemind that you can _re-enable_ notifications anytime with /enable.", parse_mode="markdown")
+                bot.send_message(message.chat.id,
+                                 "Alerts succesfully *disabled*.\nTake a second to give me a /feedback of your experience with the bot.\nRemind that you can _re-enable_ notifications anytime with /enable.",
+                                 parse_mode="markdown")
 
         else:
             bot.reply_to(message, "*Warning:* this command works only in private chat!", parse_mode="markdown")
@@ -244,33 +251,26 @@ def dona(message):
     check_and_add(message.from_user.id, message.from_user.username)
 
 
-# /retrieve or /r: Search the message by id in group and reply to it.
-@bot.message_handler(commands=['retrieve', 'r'])
+# /r: Search the message by id in group and reply to it.
+@bot.message_handler(commands=['r'])
 def getmessage(message):
     send_log(message)
     if is_group(message):
         param = message.text.split()
         if len(param) > 1:
             try:
-                r = bot.send_message(message.chat.id, "Here is your message, @%s." % message.from_user.username, reply_to_message_id=int(param[1]))
-
-                if r[1].result.ok is False:
-                    bot.reply_to(message, "Message not found.")
-
+                bot.send_message(message.chat.id, "Here is your message, @%s." % message.from_user.username, reply_to_message_id=int(param[1]))
             except ValueError:
-                # Non integer parameter
-                bot.reply_to(message, "Invalid parameter.")
-            except TypeError:
-                # r[1].result.ok not defined => message is OK
-                # TODO: find a simple way to do this
-                pass
+                bot.reply_to(message, "_I'm sorry_.\nYou need to provide me the *numeric ID* of the message you are looking for.", parse_mode="markdown")
+            except Exception:
+                bot.reply_to(message, "_I'm sorry_.\nError(s) occurred searching the message.\nCheck the *ID* and the *group* of message you are looking for.\n\nIf you think this is a mistake /feedback me.", parse_mode="markdown")
+
         else:
-            bot.reply_to(message, "I need a parameter.")
+            bot.reply_to(message, "I need the message ID.")
     else:
-        bot.send_message(message.chat.id, "This command can work only in the group in which you want to retrieve the message.")
+        bot.send_message(message.chat.id, "This command can work only in the group of the message.")
 
     check_and_add(message.from_user.id, message.from_user.username)
-
 
 # /feedback or /report: Share the email address so users can contact owner
 @bot.message_handler(commands=['feedback', 'report'])
@@ -341,7 +341,8 @@ def aggiornautente(message):
                     if message.from_user.username is not None:
                         mittente = message.from_user.username.replace("_", "\_")
 
-                    testobase = "Howdy!\n@%s _mentioned you in this message from_ *%s*:" % (mittente, message.chat.title.replace("_", "\_"))
+                    testobase = "Howdy!\n@%s _mentioned you in this message from_ *%s*:" % (
+                    mittente, message.chat.title.replace("_", "\_"))
                     comando = "To view this message in its context, send the following command in that group:\n/r %s" % message.message_id
 
                     if message.content_type == 'text':
@@ -370,7 +371,8 @@ def aggiornautente(message):
         conn.close()
 
     elif message.chat.type == "private":
-        bot.send_message(message.chat.id, "*Error!*\nCommand not recognized.\nType /help to find out more.", parse_mode="markdown")
+        bot.send_message(message.chat.id, "*Error!*\nCommand not recognized.\nType /help to find out more.",
+                         parse_mode="markdown")
 
     check_and_add(message.from_user.id, message.from_user.username)
 
