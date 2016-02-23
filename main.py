@@ -293,9 +293,9 @@ def disablealerts(message):
             bot.send_message(message.chat.id, "_I'm sorry_.\nYou need to to set an username from Telegram's settings before using this command.")
 
         else:
-            if check_and_add(message.from_user.id, message.from_user.username, True, False):
+            if check_and_add(message.from_user.id, message.from_user.username, False, False):
                 # Present in database, enable alerts and update the username (even if not needed)
-                update_user(message.from_user.id, message.from_user.username, True, False)
+                update_user(message.from_user.id, message.from_user.username, False, False)
                 enabled_users-= 1
 
             bot.send_message(message.chat.id, "Alerts succesfully *disabled*.\nTake a second to give me a /feedback of your experience with the bot.\nRemind that you can _re-enable_ notifications anytime with /enable.", parse_mode="markdown")
