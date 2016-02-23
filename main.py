@@ -221,7 +221,7 @@ def send_feedback(message):
 #                                           #
 #############################################
 
-# Handle too much old (> 5 seconds ago) messages OR from banned users, doing...nothing
+# Handle messages from banned users, doing...nothing
 @bot.message_handler(func=lambda message: is_banned(message.from_user.id))
 def skip_messages(message):
     pass
