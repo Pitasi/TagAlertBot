@@ -27,7 +27,6 @@ logname = 'registro.log'
 logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
 logger = telebot.logger
 telebot.logger.setLevel(logging.DEBUG)
-
 fileHandler = logging.FileHandler("{0}/{1}".format(logpath, logname))
 fileHandler.setFormatter(logFormatter)
 logger.addHandler(fileHandler)
@@ -137,7 +136,8 @@ def add_user(userid, username = "place-holder", enabled = False, banned = False)
     if not check_user(userid):
         log_bot.send_message(admin_id, "[%s]\nAdding user @%s (id: %s) to JSON." % (strftime("%Y-%m-%d %H:%M:%S"), username, userid))
         # Add user
-        known_users+= 1
+        global known_users
+        known_users += 1
         users[str(userid)] = {
                                 "username"  : username,
                                 "enabled"   : enabled,
@@ -221,30 +221,30 @@ def send_feedback(message):
 #                                           #
 #############################################
 
-# Handle messages from banned users, doing...nothing
+# Handle too much old (> 5 seconds ago) messages OR from banned users, doing...nothing
 @bot.message_handler(func=lambda message: is_banned(message.from_user.id))
 def skip_messages(message):
     pass
 
 
 # Greetings for new chat participant (in groups) if not present in DB
-@bot.message_handler(content_types=['new_chat_participant'])
-def greetings(message):
-    if not check_and_add(message.new_chat_participant.id, message.new_chat_participant.username) and not is_bot(message.new_chat_participant.username):
-        timestamp = strftime("%Y-%m-%d %H:%M:%S")
-        log_bot.send_message(admin_id, "[%s]\n@%s\n(%s %s - %s) è stato aggiunto a %s" % (timestamp, message.new_chat_participant.username, message.new_chat_participant.first_name, message.new_chat_participant.last_name, message.new_chat_participant.id, message.chat.title))
-        name = message.new_chat_participant.first_name
-        if message.new_chat_participant.username is not None:
-            name = "@%s" % message.new_chat_participant.username
-        bot.reply_to(message, "Hi there %s!\nI am TagAlertBot, at your service.\nType /help to know something more about me!" % name)
+#@bot.message_handler(content_types=['new_chat_participant'])
+#def greetings(message):
+#    if not check_and_add(message.new_chat_participant.id, message.new_chat_participant.username) and not is_bot(message.new_chat_participant.username):
+#        timestamp = strftime("%Y-%m-%d %H:%M:%S")
+#        log_bot.send_message(admin_id, "[%s]\n@%s\n(%s %s - %s) è stato aggiunto a %s" % (timestamp, message.new_chat_participant.username, message.new_chat_participant.first_name, message.new_chat_participant.last_name, message.new_chat_participant.id, message.chat.title))
+#        name = message.new_chat_participant.first_name
+#        if message.new_chat_participant.username is not None:
+#            name = "@%s" % message.new_chat_participant.username
+#        bot.reply_to(message, "Hi there %s!\nI am TagAlertBot, at your service.\nType /help to know something more about me!" % name)
 
 
 # /start or /help: Explain bot's features and add user if not present in DB
 @bot.message_handler(commands=['start', 'help'])
 def help(message):
     param = message.text.split()
+    send_log(message)
     if len(param) == 1:
-        send_log(message)
         testo = "Hi there! I'm *TagAlertBot*, and I'm here to help you!\n\nWith me, you will never lose important messages inside your favorite groups again.\nWhen someone tags you using your @username, I will notify you with a private message.\n\nYou can enable this feature sending /enable to me, *privately*.\n\nPlease report bugs or suggestions using /feedback."
 
         bot.reply_to(message, testo, parse_mode="markdown")
@@ -256,11 +256,12 @@ def help(message):
 
         try:
             bot.send_message(int(m_id[1]), "Here is your message, @%s." % message.from_user.username, reply_to_message_id=int(m_id[0]))
+            bot.reply_to(message, "Done!\nNow check the group of the message.")
         except Exception:
             bot.reply_to(message, "_I'm sorry_.\nError(s) occurred searching the message.\nCheck the *ID* and the *group* of message you are looking for.\n\nIf you think this is a mistake /feedback me.", parse_mode="markdown")
 
     else:
-        bot.reply_to(message, "Error(s) occurred.\nPlease /feedback reporting this.", parse_mode="markdown")
+        bot.reply_to(message, "Unexpected error occurred.\nPlease /feedback reporting this.", parse_mode="markdown")
 
 
 # /enable: Update (or add new) settings for user in DB enabling alerts
@@ -276,7 +277,8 @@ def enablealerts(message):
             if check_and_add(message.from_user.id, message.from_user.username, True, False):
                 # Present in database, enable alerts and update the username (even if not needed)
                 update_user(message.from_user.id, message.from_user.username, True, False)
-                enabled_users+= 1
+                global enabled_users
+                enabled_users += 1
 
             bot.send_message(message.chat.id, "Alerts successfully *enabled*.\nFeel free to leave a /feedback sharing your experience.", parse_mode="markdown")
 
@@ -293,10 +295,11 @@ def disablealerts(message):
             bot.send_message(message.chat.id, "_I'm sorry_.\nYou need to to set an username from Telegram's settings before using this command.")
 
         else:
-            if check_and_add(message.from_user.id, message.from_user.username, False, False):
+            if check_and_add(message.from_user.id, message.from_user.username, True, False):
                 # Present in database, enable alerts and update the username (even if not needed)
                 update_user(message.from_user.id, message.from_user.username, False, False)
-                enabled_users-= 1
+                global enabled_users
+                enabled_users -= 1
 
             bot.send_message(message.chat.id, "Alerts succesfully *disabled*.\nTake a second to give me a /feedback of your experience with the bot.\nRemind that you can _re-enable_ notifications anytime with /enable.", parse_mode="markdown")
 
@@ -329,17 +332,21 @@ def feedback(message):
         msg = bot.reply_to(message, testo, parse_mode="markdown")
         bot.register_next_step_handler(msg, feedback_send)
     
-
-# /feedback second step function. Read the message, if it is /cancel abort, else send the feedback through the feedbacks bot
+   
 def feedback_send(message):
     if message.text.lower() == "/cancel" or message.text.lower() == "/cancel@tagalertbot":
+        send_log(message)
         bot.reply_to(message, "Message deleted.", parse_mode="markdown")
+
+    elif message.text[0] == '/':
+        pass
+
     else:
         send_feedback(message)
         bot.reply_to(message, "Message succesfully sent.\nIf needed, you will be contacted soon, here on Telegram.\nThank you!", parse_mode="markdown")
 
 
-# /feedback or /report: Share the email address so users can contact owner
+# /stats: Show some numbers
 @bot.message_handler(commands=['stats', 'statistics'])
 def stats(message):
     send_log(message)
@@ -356,7 +363,7 @@ def banhammer(message):
         if len(param) > 1:
             if check_and_add(message.from_user.id, message.from_user.username, False, True):
                 # Present in database, ban id and update the username (even if not needed)
-                update_user(message.from_user.id, message.from_user.username, False, True)
+                update_user(int(param[1]), None, False, True)
                 timestamp = strftime("%Y-%m-%d %H:%M:%S")
                 log_bot.send_message(admin_id, "[%s]\nUser %s has been banned." % (timestamp, int(param[1])))
         else:
@@ -376,6 +383,17 @@ def unbanhammer(message):
                 log_bot.send_message(admin_id, "[%s]\nUser %s has been unbanned." % (timestamp, int(param[1])))
         else:
             bot.reply_to(message, "Parametro non valido")
+
+
+# /sourcecode: Show a link for source code on github
+@bot.message_handler(commands=['sourcecode'])
+def sourcecode(message):
+    send_log(message)
+    testo = "My source code is *open* and *free*.\nYou can find it here: http://www.github.com/pitasi/TagAlertBot."
+    if is_group(message):
+        bot.reply_to(message, testo, parse_mode="markdown")
+    else:
+        bot.send_message(message.chat.id, testo, parse_mode="markdown")
 
 
 # Every text, photo or video. Search for @tags, search every tag in DB and contact the user if alerts are enabled
