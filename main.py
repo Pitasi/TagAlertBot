@@ -221,7 +221,7 @@ def send_feedback(message):
 #                                           #
 #############################################
 
-# Handle too much old (> 5 seconds ago) messages OR from banned users, doing...nothing
+# Handle messages from banned users, doing...nothing
 @bot.message_handler(func=lambda message: is_banned(message.from_user.id))
 def skip_messages(message):
     pass
@@ -422,30 +422,30 @@ def aggiornautente(message):
             if enabled:
                 mittente = message.from_user.first_name.replace("_", "\_")
                 if message.from_user.username is not None:
-                    mittente = message.from_user.username.replace("_", "\_")
+                    mittente = "@%s" % message.from_user.username.replace("_", "\_")
 
-                testobase = "Howdy!\n@%s _mentioned you in this message from_ *%s*:" % (mittente, message.chat.title.replace("_", "\_"))
+                testobase = "Howdy!\n%s _mentioned you in this message from_ *%s*:" % (mittente, message.chat.title.replace("_", "\_"))
                 comando = "To view this message in its context, just click on the following link:\ntelegram.me/TagAlertBot?start=%s\_%s\nThen click on Start _(down there)_, and open the group of the message." % (message.message_id, message.chat.id)
 
                 if message.content_type == 'text':
                     testo = "%s\n%s\n\n%s" % (testobase, message.text.replace("_", "\_"), comando)
                     if message.reply_to_message is not None:
                         testo = "%s\n\n_replying to:_" % testo
-                        bot.send_message(userid, testo, parse_mode="markdown")
+                        bot.send_message(userid, testo, parse_mode="markdown", disable_web_page_preview="true")
                         bot.forward_message(userid, message.chat.id, message.reply_to_message.message_id)
 
                     else:
-                        bot.send_message(userid, testo, parse_mode="markdown")
+                        bot.send_message(userid, testo, parse_mode="markdown", disable_web_page_preview="true")
 
 
                 elif message.content_type == 'photo' or message.content_type == 'video':
                     testo = "%s\n\n%s" % (testobase, comando)
-                    bot.send_message(userid, testo, parse_mode="markdown")
+                    bot.send_message(userid, testo, parse_mode="markdown", disable_web_page_preview="true")
                     bot.forward_message(userid, message.chat.id, message.message_id)
 
                     if message.reply_to_message is not None:
                         bot.send_message(userid, "_replying to_", parse_mode="markdown")
-                        bot.forward_message(userid, message.chat.id, message.reply_to_message.message_id)
+                        bot.forward_message(userid, message.chat.id, message.reply_to_message.message_id, disable_web_page_preview="true")
 
 
     check_and_add(message.from_user.id, message.from_user.username)
