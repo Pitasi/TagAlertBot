@@ -1,0 +1,132 @@
+{
+    "help":{
+        "en":"Hi there! I'm *TagAlertBot*, and I'm here to help you!\n\nWith me, you will never lose important messages inside your favorite groups again.\nWhen someone tags you using your @username, I will notify you with a private message.\n\nYou can enable this feature sending /enable to me, *privately*.\n\nPlease report bugs or suggestions using /feedback.",
+        
+        "it":"Ciao! Sono *TagAlertBot*, e sono qui per servirti!\n\nGrazie a me, non perderai mai più messaggi importanti nei tuoi gruppi preferiti.\n\nQuando vieni taggato da qualcuno usando il tuo @username, io ti notificherò mandandoti un messaggio privato.\n\nPer abilitare questa funzione ti basta mandarmi /enable in *chat privata*.\n\nPer segnalare malfunzionamenti o proporre nuove idee usare il comando /feedback." 
+
+    },
+
+    "findmsg_group":{
+        "en":"Here is your message, @%s.",
+
+        "it":"Ecco il tuo messaggio, @%s."
+    },
+
+    "findmsg_private":{
+        "en":"Done!\nNow check the group of the message.",
+        "it":"Fatto!\nAdesso controlla il gruppo del messaggio."
+    },
+
+    "findmsg_error":{
+        "en":"_I'm sorry_.\nError(s) occurred searching the message.\n\nIf you think this is a mistake /feedback me.",
+
+        "it":"_Mi spiace_.\nAlcuni errori sono avvenuti durante la ricerca del messaggio.\n\nSe pensi che questo sia un errore, contattami usando /feedback."
+    },
+
+    "start_error":{
+        "en":"Unexpected error occurred.\nPlease /feedback reporting this.",
+        "it":"Errore inaspettato.\nPer favore contattami usando il comando /feedback."
+    },
+
+    "warning_no_username":{
+        "en":"_I'm sorry_.\nYou need to to set an username from Telegram's settings before using this command.",
+        "it":"_Mi spiace_.\nPer poter usare questo comando devi impostare un @username dalle impostazioni di Telegram."
+    },
+
+    "enable_success":{
+        "en":"Alerts successfully *enabled*.\nYou will need to re-enable them if you change your @username!\n\nFeel free to leave a /feedback sharing your experience later.",
+        "it":"Notifiche *attivate* correttamente.\nRicordati di rifare /enable se cambi il tuo @username!\n\nSentiti libero di lasciare un /feedback condividendo la tua esperienza."
+    },
+
+
+    "warning_group":{
+        "en":"*Warning:* this command works only in private chat!",
+        "it":"*Attenzione:* questo comando funziona solo in chat privata."
+    },
+
+
+   "disable_success":{
+        "en":"Alerts succesfully *disabled*.\nTake a second to give me a /feedback of your experience with the bot.\nRemind that you can _re-enable_ notifications anytime with /enable.",
+        "it":"Notifiche *disattivate* correttamente.\nPrenditi un secondo per condividere con me un /feedback sulla tua esperienza con il bot.\nRicorda che potrai ri-abilitare le notifiche in qualsiasi momento usando /enable."
+    },
+
+    "donate":{
+        "en":"You can use me for free.\n\nSadly, even if I am a bot I need to pay bills in _BOTLand_.\nIf you would like to give some help, just click here: http://paypal.me/pitasi.\nThanks!",
+        "it":"Sei libero di usarmi gratuitamente.\n\nPurtroppo, anche se sono solo un bot, devo pagare le bollette in _BOTLandia_.\nSe vuoi darmi una mano, ti basta cliccare su http://paypal.me/pitasi.\nGrazie!"
+    },
+
+    "setlang_start":{
+        "en":"You can use your preferred language.\nJust send me the corresponding command:\n",
+        "it":"Puoi selezionare la lingua che preferisci.\nSemplicemente, mandami il comando corrispondente:\n"    
+    },
+
+    "setlang_list":
+        "/en - English\n/it - Italiano\n"    
+    ,
+
+    "setlang_success":{
+        "en":"Language updated succesfully and set to *English*.",
+        "it":"Lingua modificata correttamene e impostata su *Italiano*."
+    },
+
+    "feedback_start":{
+        "en":"Hey! If you find a bug, have some awesome ideas, or just want to share your experience with the bot, you can contact me in seconds.\nJust write your message now (or /cancel to abort):",
+        "it":"Hey! Se hai trovato un bug, hai qualche idea fantastica, oppure vuoi semplicemente condividere la tua esperienza con il bot, puoi contattarmi in un istante.\nScrivi adesso il tuo messaggio (oppure /cancel per annullare il comando):"
+    },
+
+    "feedback_cancel":{
+        "en":"Message deleted.",
+        "it":"Messaggio eliminato."
+    },
+
+    "feedback_success":{
+        "en":"Message succesfully sent.\nIf needed, you will be contacted soon, here on Telegram.\nThank you!",
+        "it":"Messaggio inviato correttamente.\nSe necessario, verrai ricontattato qui su Telegram al più presto.\nGrazie!"
+    },
+
+    "stats":{
+        "en":"TagAlertBot usage statistics:\n*Known users*: %s\n*Enabled users:* %s",
+        "it":"Statistiche per TagAlertBot:\n*Utenti noti*: %s\n*Utenti abilitati:* %s"
+    },
+
+    "banned_success":{
+        "en":"[%s]\nUser %s has been banned.",
+        "it":"[%s]\nL'utente %s è stato bannato."
+    },
+
+    "too_many_args":{
+        "en":"Too many arguments.",
+        "it":"Troppi argomenti."
+    },
+    
+    "unbanned_success":{
+        "en":"[%s]\nUser %s has been unbanned.",
+        "it":"[%s]\nL'utente %s è stato sbannato."
+    },
+
+    "sourcecode":{
+        "en":"My source code is *open* and *free*.\nYou can find it here: http://www.github.com/pitasi/TagAlertBot.",
+        "it":"Il mio codice sorgente è *open* e *gratuito*.\nLo puoi trovare su: http://www.github.com/pitasi/TagAlertBot."
+    },
+
+    "alert_main":{
+        "en":"Howdy!\n%s _mentioned you in this message from_ *%s*:",
+        "it":"Heilà!\n%s _ti ha menzionato gruppo_ *%s*:" 
+    },
+
+    "alert_link":{
+        "en":"To view this message in its context, just click on the following link:\ntelegram.me/TagAlertBot?start=%s\\_%s\nThen click on Start _(down there)_, and open the group of the message.",
+        "it":"Per visualizzare questo messaggio nel suo contesto, ti basta cliccare sul seguente link:\ntelegram.me/TagAlertBot?start=%s\\_%s\nDopodichè clicca su _AVVIA_ (qui sotto), e apri il gruppo del messaggio."
+    },
+
+    "alert_reply":{
+        "en":"_replying to:_",
+        "it":"_in risposta a:_"
+    }
+
+
+}
+
+
+
+

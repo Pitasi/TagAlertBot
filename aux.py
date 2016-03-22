@@ -48,8 +48,16 @@ def is_bot(username):
     return username[-3:].lower() == "bot"
 
 
+# Get lang settig for userid
+def lang(userid):
+    try:
+        return users[str(userid)]['lang']
+    except KeyError:
+        return "en"
+
+
 # Add user to DB using passed arguments
-def add_user(userid, username = "place-holder", enabled = False, banned = False):
+def add_user(userid, username = "place-holder", lang = "en", enabled = False, banned = False):
     # Check if users not alredy present
     if not check_user(userid):
         log_bot.send_message(admin_id, "[%s]\nAdding user @%s (id: %s) to JSON." % (strftime("%Y-%m-%d %H:%M:%S"), username, userid))
@@ -58,6 +66,7 @@ def add_user(userid, username = "place-holder", enabled = False, banned = False)
         known_users += 1
         users[str(userid)] = {
                                 "username"  : username,
+                                "lang"      : lang,
                                 "enabled"   : enabled,
                                 "banned"    : banned
                               }
@@ -73,12 +82,14 @@ def add_user(userid, username = "place-holder", enabled = False, banned = False)
 
 
 # Update userid row in DB with passed arguments. (If 'None' is passed, value won't be modified)
-def update_user(userid, new_username=None, new_enabled=None, new_banned=None):
+def update_user(userid, new_username=None, new_lang=None, new_enabled=None, new_banned=None):
     # Check if users exists
     if check_user(userid):
         # Update the right fields
         if new_username is not None:
             users[str(userid)]['username'] = new_username.lower()
+        if new_lang is not None:
+            users[str(userid)]['lang'] = new_lang.lower()
         if new_enabled is not None:
             users[str(userid)]['enabled'] = new_enabled
         if new_banned is not None:
@@ -95,12 +106,12 @@ def update_user(userid, new_username=None, new_enabled=None, new_banned=None):
 
 
 # Check if user is present, and eventually add him to DB. Returns True if already present
-def check_and_add(userid, username = "place-holder", enabled = False, banned = False):
+def check_and_add(userid, username = "place-holder", lang = "en", enabled = False, banned = False):
     if username is None:
         username = "place-holder"
 
     try:
-        add_user(userid, username, enabled, banned)
+        add_user(userid, username=username, lang=lang, enabled=enabled, banned=banned)
         return False
     except ValueError:
         return True
