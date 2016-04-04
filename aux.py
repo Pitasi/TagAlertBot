@@ -28,7 +28,7 @@ def is_flooding(userid):
     if tmp is not None and int(tmp) >= 5:
         ban_user(userid)
         try:
-            bot.send_message(userid, "You have been banned for flooding.\nPlease contact @Zaphodias if you think this is a mistake.")
+            bot.send_message(userid, lang('flooding_banned', userid))
         except Exception:
             pass
         log_bot.send_message(admin_id, "User %s banned for flooding." % userid) 
@@ -123,19 +123,20 @@ def unignore(userid1, userid2):
     return db.srem("ignore:"+str(userid1), userid2)
 
 
-# Get lang settig for userid
-def lang(userid):
-    res = db.hget(str(userid), "lang")
-    if res is None:
-        return "en"
-    return res
+# Get string localized, or english
+def lang(code, userid):
+    l = db.hget(str(userid), "lang")
+    try:
+        return replies[l][code]
+    except KeyError:
+        return replies['en'][code]
 
 
 # Add user to DB using passed arguments
 def add_user(userid, username = "place-holder", lang = "en", enabled = False):
     # Check if users not alredy present
     if not check_user(userid):
-        log_bot.send_message(admin_id, "[%s]\nAdding user @%s (id: %s) to JSON." % (strftime("%Y-%m-%d %H:%M:%S"), username, userid))
+        log_bot.send_message(admin_id, "[%s]\nAdding user @%s (id: %s) to database." % (strftime("%Y-%m-%d %H:%M:%S"), username, userid))
         # Add user
         global known_users
         known_users += 1
@@ -145,7 +146,7 @@ def add_user(userid, username = "place-holder", lang = "en", enabled = False):
         db.hset(str(userid), "enabled", enabled)       
 
     else:
-        raise ValueError("Trying to add a known user to JSON file.")
+        raise ValueError("Trying to add a known user to database.")
 
 
 # Update userid row in DB with passed arguments. (If 'None' is passed, value won't be modified)
@@ -202,7 +203,7 @@ def send_log(message, cmd=None):
     timestamp = strftime("%Y-%m-%d %H:%M:%S")
     groupinfo = ""
     if is_group(message):
-        groupinfo = "nel gruppo %s (%s)" % (message.chat.title, message.chat.id)
+        groupinfo = "in group %s (%s)" % (message.chat.title, message.chat.id)
     text = "[%s]\n@%s\n(%s %s - %s)\n\n%s\n\n%s" % (timestamp, message.from_user.username, message.from_user.first_name, message.from_user.last_name, message.from_user.id, message.text, groupinfo)
     log_bot.send_message(admin_id, text)
     

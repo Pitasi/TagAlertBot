@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+
 #############################################
 #                                           #
 #  IMPORT                                   #
@@ -12,21 +13,6 @@ from time import time, strftime
 
 from config import *
 from aux import *
-
-
-#############################################
-#                                           #
-#  DEBUG LOGGER TO FILE                     #
-#                                           #
-#############################################
-
-if (enable_debug_log):
-    logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
-    logger = telebot.logger
-    telebot.logger.setLevel(logging.DEBUG)
-    fileHandler = logging.FileHandler("{0}/{1}".format(logpath, logname))
-    fileHandler.setFormatter(logFormatter)
-    logger.addHandler(fileHandler)
 
 
 #############################################
@@ -50,7 +36,7 @@ def help(message):
     param = message.text.split()
     send_log(message, "help")
     if len(param) == 1:
-        bot.reply_to(message, replies['help'][lang(message.from_user.id)], parse_mode="markdown")
+        bot.reply_to(message, lang('help', message.from_user.id), parse_mode="markdown")
         check_and_add(message.from_user.id, message.from_user.username)
     elif len(param) == 2:
         # m_id[0] -> message id
@@ -58,13 +44,13 @@ def help(message):
         m_id = param[1].split('_')
 
         try:
-            bot.send_message(-int(m_id[1]), replies['findmsg_group'][lang(message.from_user.id)] % message.from_user.username, reply_to_message_id=int(m_id[0]))
-            bot.reply_to(message, replies['findmsg_private'][lang(message.from_user.id)])
+            bot.send_message(-int(m_id[1]), lang('findmsg_group', message.from_user.id) % message.from_user.username, reply_to_message_id=int(m_id[0]))
+            bot.reply_to(message, lang('findmsg_private', message.from_user.id))
         except Exception:
-            bot.reply_to(message, replies['findmsg_error'][lang(message.from_user.id)], parse_mode="markdown")
+            bot.reply_to(message, lang('findmsg_error', message.from_user.id), parse_mode="markdown")
 
     else:
-        bot.reply_to(message, replies['start_error'][lang(message.from_user.id)], parse_mode="markdown")
+        bot.reply_to(message, lang('start_error', message.from_user.id), parse_mode="markdown")
 
 
 # Retrieve the message
@@ -81,12 +67,12 @@ def retrieve(message):
 
     try:
         bot.send_message(-int(m_id[1]),
-                         replies['findmsg_group'][lang(message.from_user.id)] % message.from_user.username,
+                         lang('findmsg_group', message.from_user.id) % message.from_user.username,
                          reply_to_message_id=int(m_id[0])
                         )
-        bot.reply_to(message, replies['findmsg_private'][lang(message.from_user.id)])
+        bot.reply_to(message, lang('findmsg_private', message.from_user.id))
     except Exception:
-        bot.reply_to(message, replies['findmsg_error'][lang(message.from_user.id)], parse_mode="markdown")
+        bot.reply_to(message, lang('findmsg_error', message.from_user.id), parse_mode="markdown")
 
     check_and_add(message.from_user.id, message.from_user.username)
 
@@ -118,7 +104,7 @@ def unignore_h(message):
     if (unignore(message.from_user.id, (message.text)[9:]) == 1):
         bot.reply_to(message, "Done!\nYou are now receiving updates from this user.\n\n/ignore%s <- Click here to undo this operation." % (message.text)[9:])
     else:
-        bot.reply_to(message, "You are not ignoring this user.")
+        bot.reply_to(message, "You are not ignoring this user.\n\n/ignore%s <- Click here to ignore him." % (message.text)[9:])")
 
     check_and_add(message.from_user.id, message.from_user.username)
 
@@ -133,7 +119,7 @@ def enablealerts(message):
     if is_private(message):
         if message.from_user.username is None:
             # No username set
-            bot.send_message(message.chat.id, replies['warning_no_username'][lang(message.from_user.id)])
+            bot.send_message(message.chat.id, lang('warning_no_username', message.from_user.id))
 
         else:
             if check_and_add(message.from_user.id, message.from_user.username, enabled=True):
@@ -142,10 +128,10 @@ def enablealerts(message):
                 global enabled_users
                 enabled_users += 1
 
-            bot.send_message(message.chat.id, replies["enable_success"][lang(message.from_user.id)], parse_mode="markdown")
+            bot.send_message(message.chat.id, lang('enable_success', message.from_user.id), parse_mode="markdown")
 
     else:
-        bot.reply_to(message, replies["warning_group"][lang(message.from_user.id)], parse_mode="markdown")
+        bot.reply_to(message, lang('warning_group', message.from_user.id), parse_mode="markdown")
 
   
 # /disable: Update (or add new) settings for user in DB disabling alerts
@@ -157,7 +143,7 @@ def disablealerts(message):
     send_log(message, "disable")
     if is_private(message):
         if message.from_user.username is None:
-            bot.send_message(message.chat.id, replies['warning_no_username'][lang(message.from_user.id)])
+            bot.send_message(message.chat.id, lang('warning_no_username', message.from_user.id))
 
         else:
             if check_and_add(message.from_user.id, message.from_user.username, "en", enabled=True):
@@ -166,10 +152,10 @@ def disablealerts(message):
                 global enabled_users
                 enabled_users -= 1
 
-            bot.send_message(message.chat.id, replies['disable_success'][lang(message.from_user.id)], parse_mode="markdown")
+            bot.send_message(message.chat.id, lang('disable_success', message.from_user.id), parse_mode="markdown")
 
     else:
-        bot.reply_to(message, replies['warning_group'][lang(message.from_user.id)], parse_mode="markdown")
+        bot.reply_to(message, lang('warning_group', message.from_user.id), parse_mode="markdown")
 
 
 @bot.message_handler(commands=['setlang'])
@@ -179,9 +165,9 @@ def setlang(message):
 
     send_log(message, "setlang")
     if is_private(message):
-        msg = bot.reply_to(message, "%s\n%s" % (replies["setlang_start"][lang(message.from_user.id)], replies["setlang_list"]), parse_mode="markdown")
+        msg = bot.reply_to(message, "%s\n%s" % (lang("setlang_start", message.from_user.id), setlang_list), parse_mode="markdown")
     else:
-        bot.reply_to(message, replies['warning_group'][lang(message.from_user.id)], parse_mode="markdown")
+        bot.reply_to(message, lang('warning_group', message.from_user.id), parse_mode="markdown")
 
 
 @bot.message_handler(commands=lang_list)
@@ -191,15 +177,15 @@ def setlang_update(message):
     send_log(message, "change language")
     if is_private(message):
         if message.from_user.username is None:
-            bot.send_message(message.chat.id, replies['warning_no_username'][lang(message.from_user.id)])
+            bot.send_message(message.chat.id, lang('warning_no_username', message.from_user.id))
         else:
             new_lang = message.text[1:3].lower()
             if check_and_add(message.from_user.id, message.from_user.username, new_lang):
                 # Present in database, change his lang
                 update_user(message.from_user.id, message.from_user.username, new_lang)
-            bot.send_message(message.chat.id, replies["setlang_success"][lang(message.from_user.id)], parse_mode="markdown")
+            bot.send_message(message.chat.id, lang('setlang_success', message.from_user.id), parse_mode="markdown")
     else:
-        bot.reply_to(message, replies['warning_group'][lang(message.from_user.id)], parse_mode="markdown")
+        bot.reply_to(message, lang('warning_group', message.from_user.id), parse_mode="markdown")
 
 
 # /donate: Beg for some money (not so useful, though :P)
@@ -210,9 +196,9 @@ def dona(message):
     send_log(message, "donate")
 
     if is_private(message):
-        bot.send_message(message.chat.id, replies["donate"][lang(message.from_user.id)], parse_mode="markdown", disable_web_page_preview="true")
+        bot.send_message(message.chat.id, lang('donate', message.from_user.id), parse_mode="markdown", disable_web_page_preview="true")
     else:
-        bot.reply_to(message, replies["donate"][lang(message.from_user.id)], parse_mode="markdown", disable_web_page_preview="true")
+        bot.reply_to(message, lang('donate', message.from_user.id), parse_mode="markdown", disable_web_page_preview="true")
 
     check_and_add(message.from_user.id, message.from_user.username)
 
@@ -224,9 +210,9 @@ def feedback(message):
         return
     send_log(message, "feedback")
     if is_group(message):
-        bot.reply_to(message, replies["warning_group"][lang(message.from_user.id)], parse_mode="markdown")
+        bot.reply_to(message, lang('warning_group', message.from_user.id), parse_mode="markdown")
     else:
-        msg = bot.reply_to(message, replies["feedback_start"][lang(message.from_user.id)], parse_mode="markdown")
+        msg = bot.reply_to(message, lang('feedback_start', message.from_user.id), parse_mode="markdown")
         bot.register_next_step_handler(msg, feedback_send)
     
    
@@ -235,14 +221,14 @@ def feedback_send(message):
         return
     if message.text.lower() == "/cancel" or message.text.lower() == "/cancel@tagalertbot":
         send_log(message, "cancel")
-        bot.reply_to(message, replies["feedback_cancel"][lang(message.from_user.id)], parse_mode="markdown")
+        bot.reply_to(message, lang('feedback_cancel', message.from_user.id), parse_mode="markdown")
 
     elif message.text[0] == '/':
         pass
 
     else:
         send_feedback(message)
-        bot.reply_to(message, replies["feedback_success"][lang(message.from_user.id)], parse_mode="markdown")
+        bot.reply_to(message, lang('feedback_success', message.from_user.id), parse_mode="markdown")
 
 
 # /stats: Show some numbers
@@ -251,7 +237,7 @@ def stats(message):
     if is_flooding(message.from_user.id):
         return
     send_log(message, "stats")
-    bot.reply_to(message, replies["stats"][lang(message.from_user.id)] % (known_users, enabled_users), parse_mode="markdown")
+    bot.reply_to(message, lang('stats', message.from_user.id) % (known_users, enabled_users), parse_mode="markdown")
     check_and_add(message.from_user.id, message.from_user.username)
 
 
@@ -267,9 +253,9 @@ def banhammer(message):
                 ban_user(int(param[1]))
                 
                 timestamp = strftime("%Y-%m-%d %H:%M:%S")
-                log_bot.send_message(admin_id, replies["banned_success"][lang(message.from_user.id)] % (timestamp, int(param[1])))
+                log_bot.send_message(admin_id, lang('banned_success', message.from_user.id) % (timestamp, int(param[1])))
         else:
-            bot.reply_to(message, replies["too_many_args"][lang(message.from_user.id)])
+            bot.reply_to(message, lang('too_many_args', message.from_user.id))
 
 
 # /unban: For admin only, ability to unabn by ID
@@ -284,9 +270,9 @@ def unbanhammer(message):
                 unban_user(int(param[1]))
 
                 timestamp = strftime("%Y-%m-%d %H:%M:%S")
-                log_bot.send_message(admin_id, replies["unbanned_success"][lang(message.from_user.id)] % (timestamp, int(param[1])))
+                log_bot.send_message(admin_id, lang('unbanned_success', message.from_user.id) % (timestamp, int(param[1])))
         else:
-            bot.reply_to(message, replies["too_many_args"][lang(message.from_user.id)])
+            bot.reply_to(message, lang('too_many_args', message.from_user.id))
 
 
 # /sourcecode: Show a link for source code on github
@@ -295,7 +281,7 @@ def sourcecode(message):
     if is_flooding(message.from_user.id):
         return
     send_log(message, "sourcecode")
-    bot.reply_to(message, replies["sourcecode"][lang(message.from_user.id)], parse_mode="markdown")
+    bot.reply_to(message, lang('sourcecode', message.from_user.id), parse_mode="markdown")
 
 
 # Every text, photo or video. Search for @tags, search every tag in DB and contact the user if alerts are enabled
@@ -328,13 +314,13 @@ def aggiornautente(message):
                 if message.from_user.username is not None:
                     mittente = "@%s" % message.from_user.username.replace("_", "\_")
 
-                testobase = replies["alert_main"][lang(userid)] % (mittente, message.chat.title.replace("_", "\_"))
-                comando = replies["alert_link"][lang(userid)] % (message.message_id, -message.chat.id, message.from_user.id)
+                testobase = lang('alert_main', userid) % (mittente, message.chat.title.replace("_", "\_"))
+                comando = lang('alert_link', userid) % (message.message_id, -message.chat.id, message.from_user.id)
 
                 if message.content_type == 'text':
                     testo = "%s\n%s\n\n%s" % (testobase, message.text.replace("_", "\_"), comando)
                     if message.reply_to_message is not None and message.text is not None:
-                        testo = "%s\n\n%s" % (testo, replies["alert_reply"][lang(userid)])
+                        testo = "%s\n\n%s" % (testo, lang('alert_reply', userid))
                         bot.send_message(userid, testo, parse_mode="markdown", disable_web_page_preview="true")
                         bot.forward_message(userid, message.chat.id, message.reply_to_message.message_id)
 
@@ -348,7 +334,7 @@ def aggiornautente(message):
                     bot.forward_message(userid, message.chat.id, message.message_id)
 
                     if message.reply_to_message is not None:
-                        bot.send_message(userid, replies["alert_reply"][lang(userid)], parse_mode="markdown")
+                        bot.send_message(userid, lang('alert_reply', userid), parse_mode="markdown")
                         bot.forward_message(userid, message.chat.id, message.reply_to_message.message_id, disable_web_page_preview="true")
 
 
