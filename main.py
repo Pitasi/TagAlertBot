@@ -36,7 +36,11 @@ def help(message):
     param = message.text.split()
     send_log(message, "help")
     if len(param) == 1:
-        bot.reply_to(message, lang('help', message.from_user.id), parse_mode="markdown")
+        if is_group(message):
+            bot.reply_to(message, lang('help_group', message.from_user.id), parse_mode="markdown")
+        else:
+            bot.send_message(message.chat.id, lang('help', message.from_user.id), parse_mode="markdown")
+
         check_and_add(message.from_user.id, message.from_user.username)
     elif len(param) == 2:
         # m_id[0] -> message id
@@ -86,9 +90,9 @@ def ignore_h(message):
     send_log(message, "ignore")
     
     if (ignore(message.from_user.id, (message.text)[7:]) == 1):
-        bot.reply_to(message, "Done!\nYou are now ignoring this user.\n\n/unignore%s <- Click here to undo this operation." % (message.text)[7:])
+        bot.reply_to(message, lang('ignore_user_success', message.from_user.id)  % (message.text)[7:])
     else:
-        bot.reply_to(message, "You are already ignoring this user.")
+        bot.reply_to(message, lang('ignore_user_fail', message.from_user.id) % (message.text)[7:])
 
     check_and_add(message.from_user.id, message.from_user.username)
 
@@ -102,9 +106,9 @@ def unignore_h(message):
     send_log(message, "unignore")
     
     if (unignore(message.from_user.id, (message.text)[9:]) == 1):
-        bot.reply_to(message, "Done!\nYou are now receiving updates from this user.\n\n/ignore%s <- Click here to undo this operation." % (message.text)[9:])
+        bot.reply_to(message, lang('unignore_user_success', message.from_user.id)  % (message.text)[9:])
     else:
-        bot.reply_to(message, "You are not ignoring this user.\n\n/ignore%s <- Click here to ignore him." % (message.text)[9:])")
+        bot.reply_to(message, lang('unignore_user_fail', message.from_user.id) % (message.text)[9:])
 
     check_and_add(message.from_user.id, message.from_user.username)
 
@@ -201,6 +205,22 @@ def dona(message):
         bot.reply_to(message, lang('donate', message.from_user.id), parse_mode="markdown", disable_web_page_preview="true")
 
     check_and_add(message.from_user.id, message.from_user.username)
+
+
+
+#/credits: Let's thanks someone
+@bot.message_handler(commands=['credits'])
+def credits(message):
+    if is_flooding(message.from_user.id):
+        return
+    send_log(message, 'credits')
+    
+    msg = "Bot created by @Zaphodias.\nThanks to @Pilota for helping the bot become more popular.\n\nTranslators:\n*Arabic*: @MRVMVX.\n*Spanish*: @giosann and @imiguelacuna.\n*German*: @F63NNKJ4.\n\nJoin @zaphodiasgroup to get help."
+
+    if is_private(message):
+        bot.send_message(message.chat.id, msg, parse_mode="markdown")
+    else:
+        bot.reply_to(message, msg, parse_mode="markdown")
 
 
 # /feedback or /report: Share the email address so users can contact owner
