@@ -13,13 +13,32 @@ from time import time, strftime
 
 from config import *
 from aux import *
+from db_aux import *
 
+from boot import *
 
 #############################################
 #                                           #
 #  HANDLERS                                 #
 #                                           #
 #############################################
+
+# Someone left a group, remove from db
+@bot.message_handler(content_types=['left_chat_participant'])
+def user_left(message):
+    if message.left_chat_participant.username == "TagAlertBot":
+        remove_group(message.chat.id)
+    else:
+        remove_from_group(message.left_chat_participant.id, message.chat.id)
+    send_log(message)
+
+
+# Someone joined a group, add to db
+@bot.message_handler(content_types=['new_chat_participant'])
+def user_join(message):
+    add_to_group(message.new_chat_participant.id, message.chat.id)
+    send_log(message)
+
 
 # Handle messages from banned users, doing...nothing
 @bot.message_handler(func=lambda message: is_banned(message.from_user.id))
@@ -32,29 +51,13 @@ def skip_messages(message):
 def help(message):
     if is_flooding(message.from_user.id):
         return
-
-    param = message.text.split()
     send_log(message, "help")
-    if len(param) == 1:
-        if is_group(message):
-            bot.reply_to(message, lang('help_group', message.from_user.id), parse_mode="markdown")
-        else:
-            bot.send_message(message.chat.id, lang('help', message.from_user.id), parse_mode="markdown")
-
-        check_and_add(message.from_user.id, message.from_user.username)
-    elif len(param) == 2:
-        # m_id[0] -> message id
-        # m_id[1] -> chat id
-        m_id = param[1].split('_')
-
-        try:
-            bot.send_message(-int(m_id[1]), lang('findmsg_group', message.from_user.id) % message.from_user.username, reply_to_message_id=int(m_id[0]))
-            bot.reply_to(message, lang('findmsg_private', message.from_user.id))
-        except Exception:
-            bot.reply_to(message, lang('findmsg_error', message.from_user.id), parse_mode="markdown")
-
+    if is_group(message):
+        bot.reply_to(message, lang('help_group', message.from_user.id), parse_mode="markdown")
     else:
-        bot.reply_to(message, lang('start_error', message.from_user.id), parse_mode="markdown")
+        bot.send_message(message.chat.id, lang('help', message.from_user.id), parse_mode="markdown")
+
+    store_info(message)
 
 
 # Retrieve the message
@@ -67,18 +70,23 @@ def retrieve(message):
     
     # m_id[0] -> message id
     # m_id[1] -> chat id
-    m_id = (message.text)[9:].split('_')
+    param = message.text[10:]
+    m_id = (message.text)[10:].split('_')
+
+    if not is_valid_retrieve(param):
+        bot.reply_to(message, "Sorry, you already retrieved this message too many times.")
+        return
 
     try:
-        bot.send_message(-int(m_id[1]),
+        bot.send_message(-int(decode_b62(m_id[1])),
                          lang('findmsg_group', message.from_user.id) % message.from_user.username,
-                         reply_to_message_id=int(m_id[0])
+                         reply_to_message_id=int(decode_b62(m_id[0]))
                         )
         bot.reply_to(message, lang('findmsg_private', message.from_user.id))
     except Exception:
         bot.reply_to(message, lang('findmsg_error', message.from_user.id), parse_mode="markdown")
 
-    check_and_add(message.from_user.id, message.from_user.username)
+    store_info(message)
 
 
 # /ignoreXXXX - Add XXX to ignored list for user
@@ -88,13 +96,15 @@ def ignore_h(message):
         return
 
     send_log(message, "ignore")
-    
-    if (ignore(message.from_user.id, (message.text)[7:]) == 1):
-        bot.reply_to(message, lang('ignore_user_success', message.from_user.id)  % (message.text)[7:])
-    else:
-        bot.reply_to(message, lang('ignore_user_fail', message.from_user.id) % (message.text)[7:])
 
-    check_and_add(message.from_user.id, message.from_user.username)
+    param = message.text[8:]    
+
+    if (ignore(message.from_user.id, decode_b62(param)) == 1):
+        bot.reply_to(message, lang('ignore_user_success', message.from_user.id)  % param, parse_mode="markdown")
+    else:
+        bot.reply_to(message, lang('ignore_user_fail', message.from_user.id) % param, parse_mode="markdown")
+
+    store_info(message)
 
 
 # /ignoreXXXX - Add XXX to ignored list for user
@@ -104,13 +114,15 @@ def unignore_h(message):
         return
 
     send_log(message, "unignore")
-    
-    if (unignore(message.from_user.id, (message.text)[9:]) == 1):
-        bot.reply_to(message, lang('unignore_user_success', message.from_user.id)  % (message.text)[9:])
-    else:
-        bot.reply_to(message, lang('unignore_user_fail', message.from_user.id) % (message.text)[9:])
 
-    check_and_add(message.from_user.id, message.from_user.username)
+    param = message.text[10:]    
+
+    if (unignore(message.from_user.id, decode_b62(param)) == 1):
+        bot.reply_to(message, lang('unignore_user_success', message.from_user.id) % param, parse_mode="markdown")
+    else:
+        bot.reply_to(message, lang('unignore_user_fail', message.from_user.id) % param, parse_mode="markdown")
+
+    store_info(message)
 
 
 # /enable: Update (or add new) settings for user in DB enabling alerts
@@ -125,13 +137,19 @@ def enablealerts(message):
             # No username set
             bot.send_message(message.chat.id, lang('warning_no_username', message.from_user.id))
 
+        elif is_enabled(message.from_user.id):
+            # Already enabled
+            bot.send_message(message.chat.id, lang('enable_fail', message.from_user.id))
+
         else:
-            if check_and_add(message.from_user.id, message.from_user.username, enabled=True):
+            if check_user(message.from_user.id):
                 # Present in database, enable alerts and update the username (even if not needed)
                 update_user(message.from_user.id, message.from_user.username, new_enabled=True)
-                global enabled_users
-                enabled_users += 1
-
+            else:
+                add_user(message.from_user.id, message.from_user.username, enabled=True)
+                
+            global enabled_users
+            enabled_users += 1
             bot.send_message(message.chat.id, lang('enable_success', message.from_user.id), parse_mode="markdown")
 
     else:
@@ -149,15 +167,20 @@ def disablealerts(message):
         if message.from_user.username is None:
             bot.send_message(message.chat.id, lang('warning_no_username', message.from_user.id))
 
+        elif not is_enabled(message.from_user.id):
+            # Already disabled
+            bot.send_message(message.chat.id, lang('disable_fail', message.from_user.id))
+
         else:
-            if check_and_add(message.from_user.id, message.from_user.username, "en", enabled=True):
+            if check_user(message.from_user.id):
                 # Present in database, enable alerts and update the username (even if not needed)
                 update_user(message.from_user.id, message.from_user.username, new_enabled=False)
-                global enabled_users
-                enabled_users -= 1
-
+            else:
+                add_user(message.from_user.id, message.from_user.username, enabled=False)
+                
+            global enabled_users
+            enabled_users += 1
             bot.send_message(message.chat.id, lang('disable_success', message.from_user.id), parse_mode="markdown")
-
     else:
         bot.reply_to(message, lang('warning_group', message.from_user.id), parse_mode="markdown")
 
@@ -184,9 +207,13 @@ def setlang_update(message):
             bot.send_message(message.chat.id, lang('warning_no_username', message.from_user.id))
         else:
             new_lang = message.text[1:3].lower()
-            if check_and_add(message.from_user.id, message.from_user.username, new_lang):
+            if check_user(message.from_user.id):
                 # Present in database, change his lang
                 update_user(message.from_user.id, message.from_user.username, new_lang)
+            else:
+                # Not present in database, add him
+                add_user(message.from_user.id, message.from_user.username, lang=new_lang)
+
             bot.send_message(message.chat.id, lang('setlang_success', message.from_user.id), parse_mode="markdown")
     else:
         bot.reply_to(message, lang('warning_group', message.from_user.id), parse_mode="markdown")
@@ -204,7 +231,7 @@ def dona(message):
     else:
         bot.reply_to(message, lang('donate', message.from_user.id), parse_mode="markdown", disable_web_page_preview="true")
 
-    check_and_add(message.from_user.id, message.from_user.username)
+    store_info(message)
 
 
 
@@ -251,6 +278,31 @@ def feedback_send(message):
         bot.reply_to(message, lang('feedback_success', message.from_user.id), parse_mode="markdown")
 
 
+# /groups: Show the list of groups in which user is known
+@bot.message_handler(commands=['groups'])
+def get_group_list(message):
+    if is_flooding(message.from_user.id):
+        return
+
+    send_log(message, "groups")
+
+    if is_group(message):
+        bot.reply_to(message, lang('warning_group', message.from_user.id), parse_mode="markdown")
+    else:
+        ls = ""
+        for g in groups_list(message.from_user.id):
+            try:
+                ls += "\u2705"+group_name(g)+"\n"
+            except Exception:
+                pass
+        if ls == "":
+            bot.reply_to(message, "No groups found!\nMake sure you wrote at least one message in a group with me.")
+        else:
+            bot.reply_to(message, "Groups list:\n"+ls+"\n\n<i>A group is missing?</i> Make sure you wrote at least one message in that group.", parse_mode="html")
+
+    store_info(message)
+
+
 # /stats: Show some numbers
 @bot.message_handler(commands=['stats', 'statistics'])
 def stats(message):
@@ -258,7 +310,7 @@ def stats(message):
         return
     send_log(message, "stats")
     bot.reply_to(message, lang('stats', message.from_user.id) % (known_users, enabled_users), parse_mode="markdown")
-    check_and_add(message.from_user.id, message.from_user.username)
+    store_info(message)
 
 
 # /ban: For admin only, ability to ban by ID
@@ -267,12 +319,12 @@ def banhammer(message):
     if admin_id == message.from_user.id:
         param = message.text.split()
         if len(param) > 1:
-            if check_and_add(message.from_user.id, message.from_user.username):
-                
+            if check_user(message.from_user.id):
                 # Present in database, ban id and update the username (even if not needed)
                 ban_user(int(param[1]))
                 
                 timestamp = strftime("%Y-%m-%d %H:%M:%S")
+                bot.send_message(admin_id, "Done!")
                 log_bot.send_message(admin_id, lang('banned_success', message.from_user.id) % (timestamp, int(param[1])))
         else:
             bot.reply_to(message, lang('too_many_args', message.from_user.id))
@@ -284,12 +336,12 @@ def unbanhammer(message):
     if admin_id == message.from_user.id:
         param = message.text.split()
         if len(param) > 1:
-            if check_and_add(message.from_user.id, message.from_user.username):
-                
-                # Present in database, ban id and update the username (even if not needed)
+            if check_user(message.from_user.id):
+                # Present in database, unban id and update the username (even if not needed)
                 unban_user(int(param[1]))
 
                 timestamp = strftime("%Y-%m-%d %H:%M:%S")
+                bot.send_message(admin_id, "Done!")
                 log_bot.send_message(admin_id, lang('unbanned_success', message.from_user.id) % (timestamp, int(param[1])))
         else:
             bot.reply_to(message, lang('too_many_args', message.from_user.id))
@@ -302,6 +354,7 @@ def sourcecode(message):
         return
     send_log(message, "sourcecode")
     bot.reply_to(message, lang('sourcecode', message.from_user.id), parse_mode="markdown")
+    store_info(message)
 
 
 # Every text, photo or video. Search for @tags, search every tag in DB and contact the user if alerts are enabled
@@ -329,13 +382,13 @@ def aggiornautente(message):
                 # If username is not present, is not enabled
                 enabled = False
 
-            if enabled and not is_ignored(userid, message.from_user.id):
+            if enabled and is_in_group(userid, message.chat.id)  and not is_ignored(userid, message.from_user.id):
                 mittente = message.from_user.first_name.replace("_", "\_")
                 if message.from_user.username is not None:
                     mittente = "@%s" % message.from_user.username.replace("_", "\_")
 
                 testobase = lang('alert_main', userid) % (mittente, message.chat.title.replace("_", "\_"))
-                comando = lang('alert_link', userid) % (message.message_id, -message.chat.id, message.from_user.id)
+                comando = lang('alert_link', userid) % (encode_b62(message.message_id), encode_b62(-message.chat.id), encode_b62(message.from_user.id))
 
                 if message.content_type == 'text':
                     testo = "%s\n%s\n\n%s" % (testobase, message.text.replace("_", "\_"), comando)
@@ -358,7 +411,7 @@ def aggiornautente(message):
                         bot.forward_message(userid, message.chat.id, message.reply_to_message.message_id, disable_web_page_preview="true")
 
 
-    check_and_add(message.from_user.id, message.from_user.username)
+    store_info(message)
 
 
 #############################################
