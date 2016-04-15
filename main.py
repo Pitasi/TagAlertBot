@@ -60,7 +60,7 @@ def help(message):
     store_info(message)
 
 
-# Retrieve the message
+# /retrieveXXXX: Retrieve the message
 @bot.message_handler(func=lambda message: is_retrieve(message))
 def retrieve(message):
     if is_group(message) or is_flooding(message.from_user.id):
@@ -107,7 +107,7 @@ def ignore_h(message):
     store_info(message)
 
 
-# /ignoreXXXX - Add XXX to ignored list for user
+# /unignoreXXXX - Add XXX to ignored list for user
 @bot.message_handler(func=lambda message: is_unignore(message))
 def unignore_h(message):
     if is_group(message) or is_flooding(message.from_user.id):
