@@ -173,13 +173,13 @@ def disablealerts(message):
 
         else:
             if check_user(message.from_user.id):
-                # Present in database, enable alerts and update the username (even if not needed)
+                # Present in database, disable alerts and update the username (even if not needed)
                 update_user(message.from_user.id, message.from_user.username, new_enabled=False)
             else:
                 add_user(message.from_user.id, message.from_user.username, enabled=False)
                 
             global enabled_users
-            enabled_users += 1
+            enabled_users -= 1
             bot.send_message(message.chat.id, lang('disable_success', message.from_user.id), parse_mode="markdown")
     else:
         bot.reply_to(message, lang('warning_group', message.from_user.id), parse_mode="markdown")
