@@ -11,6 +11,8 @@ Support my project and keeping up the server by donating 50 cents: http://paypal
 
 This Readme file is a work in progress.
 
+### Commands available
+
 | Command           | Description                                           |
 | ----------------- | ----------------------------------------------------- |
 | /help             | Show a presentation message.                          |
