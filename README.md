@@ -11,8 +11,8 @@ Support my project and keeping up the server by donating 50 cents: http://paypal
 
 This Readme file is a work in progress.
 
-| Commands list                                                             |
-| --------------------------------------------------------------------------|
+| Command           | Description                                           |
+| ----------------- | ----------------------------------------------------- |
 | /help             | Show a presentation message.                          |
 | /enable           | Enable notifications for the user.                    |
 | /disable          | Disable notifications for the user.                   |
@@ -31,14 +31,24 @@ This Readme file is a work in progress.
 
 ### Requirements
 * Python 3
+
 `sudo apt-get install python3 python3-dev`
+
 * A Redis server __and__ his relative python's module
+
 `sudo apt-get install redis`
+
 `sudo pip3 install redis`
+
 * pyTelegramBotAPI module
+
 `sudo pip3 install pyTelegramBotAPI`
+
 * Six module
+
 `sudo pip3 install six`
+
 * Three Telegram's bot tokens _(for main bot, log bot, and feedback bot)_
+
 [How to obtain a token for telegram](https://unnikked.ga/getting-started-with-telegram-bots/)
  
