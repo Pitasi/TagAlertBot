@@ -11,6 +11,18 @@ Support my project and keeping up the server by donating 50 cents: http://paypal
 
 This Readme file is a work in progress.
 
+### Privacy
+A lot of people asked for what is being logged and what I'm doing with these logs.
+
+Just to be sure, I'm not reading all of your messages, they are a lot and I'm not going to waste my time doing this :)
+
+_So, what I am logging?_ I log every message that triggers the bot: that means commands, tags, and people entering/leaving a group.
+
+_Why you need to log all this stuff?_ I'm doing this just to be sure that bot is safe and not being used for flooding, spamming, etc.
+
+_Where are the logs files?_ There are no logs files. I'm using an auxiliary bot to send to myself the logs.
+This way I can be updated in every moment and check for users report even if I am not in front of my computer.
+
 ### Commands available
 
 | Command           | Description                                           |
@@ -33,24 +45,48 @@ This Readme file is a work in progress.
 
 ### Requirements
 * Python 3
-
-`sudo apt-get install python3 python3-dev`
+    $ sudo apt-get install python3 python3-dev
 
 * A Redis server __and__ his relative python's module
 
-`sudo apt-get install redis`
-
-`sudo pip3 install redis`
+    $ sudo apt-get install redis
+    $ sudo pip3 install redis
 
 * pyTelegramBotAPI module
 
-`sudo pip3 install pyTelegramBotAPI`
+    $ sudo pip3 install pyTelegramBotAPI
 
 * Six module
 
-`sudo pip3 install six`
+    $ sudo pip3 install six
 
 * Three Telegram's bot tokens _(for main bot, log bot, and feedback bot)_
 
 [How to obtain a token for telegram](https://unnikked.ga/getting-started-with-telegram-bots/)
  
+
+### Run the bot
+First of all, you need to gather all the scripts in this repository.<br>
+In your terminal just:
+
+    $ git clone https://github.com/pitasi/TagAlertBot
+
+Then open the folder just created:
+
+    $ cd TagAlertBot
+
+And make sure `main.py` is executable:
+    
+    $ chmod +x main.py
+    
+Finally, to run the bot:
+
+    $ ./main.py
+    
+    
+### How to be sure the bot doesn't restart or crash
+
+I'm actually using [PM2](https://github.com/Unitech/pm2) to be sure that my bot is turned on, even if some exceptions occurs.
+
+     It allows you to keep applications alive forever, to reload them without downtime and to facilitate common system admin tasks.
+
