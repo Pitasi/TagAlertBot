@@ -9,6 +9,7 @@
 
 import re
 import logging
+import emoji
 from time import time, strftime
 
 from config import *
@@ -17,26 +18,125 @@ from db_aux import *
 
 from boot import *
 
+
 #############################################
 #                                           #
 #  HANDLERS                                 #
 #                                           #
 #############################################
 
+# Callback queries
+@bot.callback_query_handler(func=lambda call: True)
+def callback_handler(call):    
+    if is_flooding(call.from_user.id):
+        return
+            
+    # Ignore
+    if is_ignore(call.data):
+        param = call.data[8:]
+
+        # Inline keyboard
+        markup = telebot.types.InlineKeyboardMarkup()
+
+        if (ignore(call.from_user.id, decode_b62(param)) == 1):
+            button = telebot.types.InlineKeyboardButton(lang("undo_btn", call.from_user.id), callback_data="/unignore_%s" % param)
+            markup.add(button)
+            bot.send_message(call.from_user.id, lang('ignore_user_success', call.from_user.id), parse_mode="markdown", reply_markup=markup)
+        else:
+            button = telebot.types.InlineKeyboardButton(lang("ignore_btn", call.from_user.id), callback_data="/ignore_%s" % param)
+            markup.add(button)
+            bot.send_message(call.from_user.id, lang('ignore_user_fail', call.from_user.id), parse_mode="markdown", reply_markup=markup)
+
+        bot.answer_callback_query(call.id)
+    
+    
+    # Unignore
+    elif is_unignore(call.data):
+        param = call.data[10:]
+
+        # Inline keyboard
+        markup = telebot.types.InlineKeyboardMarkup()
+
+        if (unignore(call.from_user.id, decode_b62(param)) == 1):
+            button = telebot.types.InlineKeyboardButton(lang("undo_btn", call.from_user.id), callback_data="/ignore_%s" % param)
+            markup.add(button)
+            bot.send_message(call.from_user.id, lang('unignore_user_success', call.from_user.id), parse_mode="markdown", reply_markup=markup)
+        else:
+            button = telebot.types.InlineKeyboardButton(lang("unignore_btn", call.from_user.id), callback_data="/unignore_%s" % param)
+            markup.add(button)
+            bot.send_message(call.from_user.id, lang('unignore_user_fail', call.from_user.id), parse_mode="markdown", reply_markup=markup)
+        
+        bot.answer_callback_query(call.id)
+
+
+    # Retrieve
+    elif is_retrieve(call.data):
+        param = call.data[10:]
+        m_id = (call.data)[10:].split('_')
+    
+        if not is_valid_retrieve(param):
+            bot.answer_callback_query(call.id, text=lang('retrieve_fail', call.from_user.id), show_alert=True)
+            return
+    
+        try:
+            bot.send_message(-int(decode_b62(m_id[1])),
+                            lang('findmsg_group', call.from_user.id) % call.from_user.username,
+                            reply_to_message_id=int(decode_b62(m_id[0]))
+                            )
+            bot.answer_callback_query(call.id, text=lang('findmsg_private', call.from_user.id), show_alert=True)
+        except Exception:
+            bot.answer_callback_query(call.id, text=lang('findmsg_error', call.from_user.id), show_alert=True)
+
+
+    # Setlang
+    elif call.data == "/setlang":
+        bot.answer_callback_query(call.id)
+        bot.send_message(call.from_user.id, "%s\n%s" % (lang("setlang_start", call.from_user.id), setlang_list), parse_mode="markdown")
+    
+    
+    # Enable
+    elif call.data == "/enable":
+        if call.from_user.username is None:
+            # No username set
+            bot.answer_callback_query(call.id, text=lang('warning_no_username', call.from_user.id), show_alert=True)
+
+        elif is_enabled(call.from_user.id):
+            # Already enabled
+            bot.answer_callback_query(call.id, text=lang('enable_fail', call.from_user.id), show_alert=True)
+
+        else:
+            if check_user(call.from_user.id):
+                # Present in database, enable alerts and update the username (even if not needed)
+                update_user(call.from_user.id, call.from_user.username, new_enabled=True)
+            else:
+                add_user(call.from_user.id, call.from_user.username, enabled=True)
+                
+            global enabled_users
+            enabled_users += 1
+            bot.answer_callback_query(call.id, text=lang('enable_success', call.from_user.id), show_alert=True)
+         
+            
+    # Feedback
+    elif call.data == "/feedback":
+        bot.answer_callback_query(call.id)
+        msg = bot.send_message(call.from_user.id, lang('feedback_start', call.from_user.id), parse_mode="markdown")
+        bot.register_next_step_handler(msg, feedback_send)
+
+
 # Someone left a group, remove from db
-@bot.message_handler(content_types=['left_chat_participant'])
+@bot.message_handler(func=lambda m: True, content_types=['left_chat_member'])
 def user_left(message):
-    if message.left_chat_participant.username == "TagAlertBot":
+    if message.left_chat_member.username == "TagAlertBot":
         remove_group(message.chat.id)
     else:
-        remove_from_group(message.left_chat_participant.id, message.chat.id)
+        remove_from_group(message.left_chat_member.id, message.chat.id)
     send_log(message)
 
 
 # Someone joined a group, add to db
-@bot.message_handler(content_types=['new_chat_participant'])
+@bot.message_handler(content_types=['new_chat_member'])
 def user_join(message):
-    add_to_group(message.new_chat_participant.id, message.chat.id)
+    add_to_group(message.new_chat_member.id, message.chat.id)
     send_log(message)
 
 
@@ -51,17 +151,25 @@ def skip_messages(message):
 def help(message):
     if is_flooding(message.from_user.id):
         return
+        
     send_log(message, "help")
     if is_group(message):
         bot.reply_to(message, lang('help_group', message.from_user.id), parse_mode="markdown")
     else:
-        bot.send_message(message.chat.id, lang('help', message.from_user.id), parse_mode="markdown")
+        markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+        enable_btn = telebot.types.InlineKeyboardButton(lang("enable_btn", message.from_user.id), callback_data="/enable")
+        lang_btn = telebot.types.InlineKeyboardButton(lang("lang_btn", message.from_user.id), callback_data="/setlang")
+        feedback_btn = telebot.types.InlineKeyboardButton(lang("feedback_btn", message.from_user.id), callback_data="/feedback")
+        markup.add(enable_btn, lang_btn)
+        markup.add(feedback_btn)
+
+        bot.send_message(message.chat.id, lang('help', message.from_user.id), parse_mode="markdown", reply_markup=markup)
 
     store_info(message)
 
 
-# /retrieveXXXX: Retrieve the message
-@bot.message_handler(func=lambda message: is_retrieve(message))
+# Retrieve the message
+@bot.message_handler(func=lambda message: is_retrieve(message.text))
 def retrieve(message):
     if is_group(message) or is_flooding(message.from_user.id):
         return
@@ -74,7 +182,7 @@ def retrieve(message):
     m_id = (message.text)[10:].split('_')
 
     if not is_valid_retrieve(param):
-        bot.reply_to(message, "Sorry, you already retrieved this message too many times.")
+        bot.reply_to(message, lang("retrieve_fail", message.from_user.id), parse_mode="markdown")
         return
 
     try:
@@ -90,7 +198,7 @@ def retrieve(message):
 
 
 # /ignoreXXXX - Add XXX to ignored list for user
-@bot.message_handler(func=lambda message: is_ignore(message))
+@bot.message_handler(func=lambda message: is_ignore(message.text))
 def ignore_h(message):
     if is_group(message) or is_flooding(message.from_user.id):
         return
@@ -100,15 +208,15 @@ def ignore_h(message):
     param = message.text[8:]    
 
     if (ignore(message.from_user.id, decode_b62(param)) == 1):
-        bot.reply_to(message, lang('ignore_user_success', message.from_user.id)  % param, parse_mode="markdown")
+        bot.reply_to(message, lang('ignore_user_success', message.from_user.id))
     else:
-        bot.reply_to(message, lang('ignore_user_fail', message.from_user.id) % param, parse_mode="markdown")
+        bot.reply_to(message, lang('ignore_user_fail', message.from_user.id))
 
     store_info(message)
 
 
-# /unignoreXXXX - Add XXX to ignored list for user
-@bot.message_handler(func=lambda message: is_unignore(message))
+# /ignoreXXXX - Add XXX to ignored list for user
+@bot.message_handler(func=lambda message: is_unignore(message.text))
 def unignore_h(message):
     if is_group(message) or is_flooding(message.from_user.id):
         return
@@ -118,9 +226,9 @@ def unignore_h(message):
     param = message.text[10:]    
 
     if (unignore(message.from_user.id, decode_b62(param)) == 1):
-        bot.reply_to(message, lang('unignore_user_success', message.from_user.id) % param, parse_mode="markdown")
+        bot.reply_to(message, lang('unignore_user_success', message.from_user.id))
     else:
-        bot.reply_to(message, lang('unignore_user_fail', message.from_user.id) % param, parse_mode="markdown")
+        bot.reply_to(message, lang('unignore_user_fail', message.from_user.id))
 
     store_info(message)
 
@@ -130,8 +238,10 @@ def unignore_h(message):
 def enablealerts(message):
     if is_flooding(message.from_user.id):
         return
-
+    
+    store_info(message)
     send_log(message, "enable")
+
     if is_private(message):
         if message.from_user.username is None:
             # No username set
@@ -162,7 +272,9 @@ def disablealerts(message):
     if is_flooding(message.from_user.id):
         return
 
+    store_info(message)
     send_log(message, "disable")
+
     if is_private(message):
         if message.from_user.username is None:
             bot.send_message(message.chat.id, lang('warning_no_username', message.from_user.id))
@@ -180,7 +292,12 @@ def disablealerts(message):
                 
             global enabled_users
             enabled_users -= 1
-            bot.send_message(message.chat.id, lang('disable_success', message.from_user.id), parse_mode="markdown")
+            
+            markup = telebot.types.InlineKeyboardMarkup()
+            enable_btn = telebot.types.InlineKeyboardButton(lang("enable_btn", message.from_user.id), callback_data="/enable")
+            markup.add(enable_btn)
+
+            bot.send_message(message.chat.id, lang('disable_success', message.from_user.id), parse_mode="markdown", reply_markup=markup)
     else:
         bot.reply_to(message, lang('warning_group', message.from_user.id), parse_mode="markdown")
 
@@ -303,8 +420,8 @@ def get_group_list(message):
     store_info(message)
 
 
-# /stats: Show some numbers
-@bot.message_handler(commands=['stats', 'statistics'])
+# /statistics: Show some numbers
+@bot.message_handler(commands=['statistics'])
 def stats(message):
     if is_flooding(message.from_user.id):
         return
@@ -347,6 +464,18 @@ def unbanhammer(message):
             bot.reply_to(message, lang('too_many_args', message.from_user.id))
 
 
+# /echo
+@bot.message_handler(commands=['echo'])
+def echo(message):
+    if admin_id == message.from_user.id:
+        try:
+            param = message.text.split(None, 2)
+            bot.send_message(admin_id, "==MESSAGE SENT TO %s==\n%s" % (param[1], param[2]))
+            bot.send_message(int(param[1]), param[2])
+        except Exception as e:
+            bot.send_message(admin_id, e)
+
+
 # /sourcecode: Show a link for source code on github
 @bot.message_handler(commands=['sourcecode'])
 def sourcecode(message):
@@ -361,18 +490,8 @@ def sourcecode(message):
 @bot.message_handler(content_types=['text', 'photo', 'video'])
 def aggiornautente(message):
     if is_group(message):
-        matched = []
 
-        if message.text is not None:
-            matched = list(set(re.findall("@([a-zA-Z0-9_]*)", message.text)))
-
-        if message.caption is not None:
-            matched = list(set(re.findall("@([a-zA-Z0-9_]*)", message.caption)))
-
-        if len(matched) > 0:
-            if is_flooding(message.from_user.id):
-                return
-            send_log(message, "TAG")
+        matched = get_tags(message)
 
         for user in matched:
             try:
@@ -382,35 +501,44 @@ def aggiornautente(message):
                 # If username is not present, is not enabled
                 enabled = False
 
-            if enabled and is_in_group(userid, message.chat.id)  and not is_ignored(userid, message.from_user.id):
+
+            if enabled and is_in_group(userid, message.chat.id) and not is_ignored(userid, message.from_user.id):
                 mittente = message.from_user.first_name.replace("_", "\_")
                 if message.from_user.username is not None:
                     mittente = "@%s" % message.from_user.username.replace("_", "\_")
 
-                testobase = lang('alert_main', userid) % (mittente, message.chat.title.replace("_", "\_"))
-                comando = lang('alert_link', userid) % (encode_b62(message.message_id), encode_b62(-message.chat.id), encode_b62(message.from_user.id))
+                testobase = emoji.emojize(lang('alert_main', userid) % (mittente, message.chat.title.replace("_", "\_")), use_aliases=True)
+                if message.chat.username is None:
+                    retrieve_button = telebot.types.InlineKeyboardButton(lang("retrieve", userid), callback_data="/retrieve_%s_%s" % (encode_b62(message.message_id), encode_b62(-message.chat.id)))
+                else:
+                    retrieve_button = telebot.types.InlineKeyboardButton(lang("retrieve", userid), url="telegram.me/%s/%s" % (message.chat.username, message.message_id))
 
+
+                # Inline keyboard
+                markup = telebot.types.InlineKeyboardMarkup()
+                ignore_button = telebot.types.InlineKeyboardButton(lang("ignore", userid), callback_data="/ignore_%s" % encode_b62(message.from_user.id))
+                markup.add(ignore_button, retrieve_button)
+            
+            
                 if message.content_type == 'text':
-                    testo = "%s\n%s\n\n%s" % (testobase, message.text.replace("_", "\_"), comando)
+                    testo = testobase + message.text.replace("_", "\_")
                     if message.reply_to_message is not None and message.text is not None:
-                        testo = "%s\n\n%s" % (testo, lang('alert_reply', userid))
-                        bot.send_message(userid, testo, parse_mode="markdown", disable_web_page_preview="true")
+                        testo = "%s\n\n%s" % (testo, emoji.emojize(lang('alert_reply', userid), use_aliases=True))
+                        bot.send_message(userid, testo, parse_mode="markdown", reply_markup=markup, disable_web_page_preview="true")
                         bot.forward_message(userid, message.chat.id, message.reply_to_message.message_id)
 
                     else:
-                        bot.send_message(userid, testo, parse_mode="markdown", disable_web_page_preview="true")
-
+                        bot.send_message(userid, testo, parse_mode="markdown", reply_markup=markup, disable_web_page_preview="true")
 
                 elif message.content_type == 'photo' or message.content_type == 'video':
-                    testo = "%s\n\n%s" % (testobase, comando)
-                    bot.send_message(userid, testo, parse_mode="markdown", disable_web_page_preview="true")
+                    bot.send_message(userid, testobase, parse_mode="markdown", reply_markup=markup, disable_web_page_preview="true")
                     bot.forward_message(userid, message.chat.id, message.message_id)
 
                     if message.reply_to_message is not None:
-                        bot.send_message(userid, lang('alert_reply', userid), parse_mode="markdown")
+                        bot.send_message(userid, emoji.emojize(lang('alert_reply', userid), use_aliases=True), parse_mode="markdown", reply_markup=markup)
                         bot.forward_message(userid, message.chat.id, message.reply_to_message.message_id, disable_web_page_preview="true")
 
-
+                send_log(message)
     store_info(message)
 
 

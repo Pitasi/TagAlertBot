@@ -147,15 +147,17 @@ def store_info(message):
         # Chat is group or supergroup
         add_to_group(message.from_user.id, message.chat.id)
         db.set("groupnames:"+str(message.chat.id), message.chat.title)
-    
+   
     name = message.from_user.username
-    try:
-        add_user(message.from_user.id, "place-holder" if name is None else name)
-    except ValueError:
-        # User already present
-        if name is not None:
-            update_user(message.from_user.id, name)
-        pass
+    old_name = db.hget('user:'+str(message.from_user.id), 'username')
+    if name != old_name:
+        try:
+            add_user(message.from_user.id, "place-holder" if name is None else name)
+        except ValueError:
+            # User already present
+            if name is not None:
+                update_user(message.from_user.id, name)
+            pass
         
         
 # Remove a group from database

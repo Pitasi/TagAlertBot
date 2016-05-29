@@ -78,27 +78,40 @@ def is_bot(username):
 
 
 # Check if is a /retrieve command
-def is_retrieve(message):
+def is_retrieve(txt):
     try:
-        return (message.text)[:9] == "/retrieve"
+        return (txt)[:9] == "/retrieve"
     except Exception:
         return False
 
 
 # Check if is a /ignore command
-def is_ignore(message):
+def is_ignore(txt):
     try:
-        return (message.text)[:8] == "/ignore_"
+        return (txt)[:8] == "/ignore_"
     except Exception:
         return False
 
 
 # Check if is a /unignore command
-def is_unignore(message):
+def is_unignore(txt):
     try:
-        return (message.text)[:10] == "/unignore_"
+        return (txt)[:10] == "/unignore_"
     except Exception:
         return False
+
+
+# Find the tags inside a message, returns a set
+# I <3 Python
+def get_tags(message):
+    res = set()
+
+    if message.entities is not None:
+        for k in message.entities:
+            if k.type == 'mention':
+                res.add(message.text[k.offset + 1 : k.offset + k.length].lower())
+
+    return res
 
 
 #############################################
@@ -115,6 +128,7 @@ def send_log(message, cmd=None):
 
     timestamp = strftime("%Y-%m-%d %H:%M:%S")
     group_info = ""
+    text = ""
 
     if is_group(message):
         group_info = "in group %s (%s)" % (message.chat.title, message.chat.id)
@@ -137,23 +151,23 @@ def send_log(message, cmd=None):
                 message.from_user.id,
                 message.caption,
                 group_info)
-    elif message.left_chat_participant is not None:
+    elif message.left_chat_member is not None:
         text = "[%s]\n@%s\n(%s %s - %s)\n\n%s %s (%s)" %\
                 (timestamp,
-                message.left_chat_participant.username,
-                message.left_chat_participant.first_name,
-                message.left_chat_participant.last_name,
-                message.left_chat_participant.id,
+                message.left_chat_member.username,
+                message.left_chat_member.first_name,
+                message.left_chat_member.last_name,
+                message.left_chat_member.id,
                 "removed from group",
                 message.chat.title,
                 message.chat.id)
-    elif message.new_chat_participant is not None:
+    elif message.new_chat_member is not None:
         text = "[%s]\n@%s\n(%s %s - %s)\n\n%s %s (%s)" %\
                 (timestamp,
-                message.new_chat_participant.username,
-                message.new_chat_participant.first_name,
-                message.new_chat_participant.last_name,
-                message.new_chat_participant.id,
+                message.new_chat_member.username,
+                message.new_chat_member.first_name,
+                message.new_chat_member.last_name,
+                message.new_chat_member.id,
                 "added in group",
                 message.chat.title,
                 message.chat.id)

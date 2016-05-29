@@ -39,10 +39,10 @@ bot = telebot.TeleBot(main_bot_token)
 bot.skip_pending = skip_pending
 
 # Log bot initializing...
-log_bot = telebot.TeleBot(log_bot_token)
+log_bot = telebot.AsyncTeleBot(log_bot_token)
 log_bot.send_message(admin_id, "[%s]\n@%s is starting." % (strftime("%Y-%m-%d %H:%M:%S"), bot_name))
 
 # Feedback bot initializing
-feedback_bot = telebot.TeleBot(feedback_bot_token)
+feedback_bot = telebot.AsyncTeleBot(feedback_bot_token)
 
 
