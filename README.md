@@ -45,20 +45,27 @@ This way I can be updated in every moment and check for users report even if I a
 
 ### Requirements
 * Python 3
-    $ sudo apt-get install python3 python3-dev
+```bash
+sudo apt-get install python3 python3-dev
+sudo apt-get install python3-setuptools
+sudo easy_install3 pip
+```
 
 * A Redis server __and__ his relative python's module
-
-    $ sudo apt-get install redis
-    $ sudo pip3 install redis
+```bash
+sudo apt-get install redis
+sudo pip3 install redis
+```
 
 * pyTelegramBotAPI module
-
-    $ sudo pip3 install pyTelegramBotAPI
+```bash
+sudo pip3 install pyTelegramBotAPI
+```
 
 * Six module
-
-    $ sudo pip3 install six
+```bash
+sudo pip3 install six
+```
 
 * Three Telegram's bot tokens _(for main bot, log bot, and feedback bot)_
 
@@ -68,21 +75,23 @@ This way I can be updated in every moment and check for users report even if I a
 ### Run the bot
 First of all, you need to gather all the scripts in this repository.<br>
 In your terminal just:
-
-    $ git clone https://github.com/pitasi/TagAlertBot
+```bash
+git clone https://github.com/pitasi/TagAlertBot
+```
 
 Then open the folder just created:
-
-    $ cd TagAlertBot
-
+```bash
+cd TagAlertBot
+```
 And make sure `main.py` is executable:
-    
-    $ chmod +x main.py
-    
-Finally, to run the bot:
+```bash    
+chmod +x main.py
+```
 
-    $ ./main.py
-    
+Finally, to run the bot:
+```bash
+./main.py
+```
     
 ### How to be sure the bot doesn't restart or crash
 
