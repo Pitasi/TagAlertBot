@@ -15,7 +15,7 @@ config = {
     'db_path':    './userdb',
 
     # telegram token (contact @BotFather for getting one)
-    'token':      '208973131:AAH2pj0eAeRdzsYkhfFWFDq7fZMM07e_5ko'
+    'token':      'YOUR TOKEN HERE'
 }
 
 replies = {
