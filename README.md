@@ -9,8 +9,6 @@ Written in Python 3 and powered by
 
 Support my project and keeping up the server by donating 50 cents: http://paypal.me/pitasi.
 
-This Readme file is a work in progress.
-
 ### Privacy
 A lot of people asked for what is being logged and what I'm doing with these logs.
 
@@ -35,14 +33,15 @@ sudo pip3 install pyTelegramBotAPI
 
 ### Run the bot
 ```bash
-git clone https://github.com/pitasi/TagAlertBot
+$ git clone https://github.com/pitasi/TagAlertBot
+$ cd TagAlertBot
+$ cp config.py.example config.py
 ```
 
-Edit `tagalert.py` with you preferences.
+Edit `tagalert.py` and `config.py` with you preferences.
 
 ```bash
-cd TagAlertBot
-python3 tagalert.py
+$ python3 tagalert.py
 ```
 
 ### How to be sure the bot doesn't restart or crash

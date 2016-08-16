@@ -8,15 +8,7 @@
 
 import telebot
 import shelve
-
-# Configuration
-config = {
-    # path to your database file
-    'db_path':    './userdb',
-
-    # telegram token (contact @BotFather for getting one)
-    'token':      'YOUR TOKEN HERE'
-}
+from config import *
 
 replies = {
     'start_group':      'Contact me in private for more infos and enabling me.',
@@ -36,7 +28,8 @@ Source code: https://github.com/Pitasi/TagAlertBot\n\
 # end configuration
 
 d   = shelve.open(config['db_path'])
-bot = telebot.TeleBot(config['token'])
+bot = telebot.TeleBot(config['token'], threaded=False)
+n = bot.get_me()
 
 @bot.callback_query_handler(func=lambda call: call.data[:9] == "/retrieve")
 def callback_handler(call):
@@ -46,18 +39,21 @@ def callback_handler(call):
                         replies['retrieve_group'].format(call.from_user.username),
                         reply_to_message_id=int(m_id[0]))
         bot.answer_callback_query(call.id, text=replies['retrieve_success'], show_alert=True)
-    except telebot.apihelper.ApiException as e:
-        print(e)
+    except Exception as e:
+        print("Exception during callback: {}".format(e))
         bot.answer_callback_query(call.id, text=replies['error'], show_alert=True)
 
-@bot.message_handler(commands=['start', 'help'])
+@bot.message_handler(func=lambda m: m.chat.type != 'group' and m.chat.type != 'supergroup')
 def help_handler(m):
     d[m.from_user.username.lower()] = m.from_user.id
     d.sync()
     is_group = m.chat.type == 'group' or m.chat.type == 'supergroup'
-    bot.reply_to(m, replies['start_group'] if is_group else replies['start_private'])
+    try:
+        bot.reply_to(m, replies['start_group'] if is_group else replies['start_private'])
+    except Exception as e:
+        print("Exception during help handler: {}".format(e))
 
-@bot.message_handler(func = lambda m:                           \
+@bot.message_handler(func=lambda m:                           \
                                 m.entities and                  \
                                 (m.chat.type == 'group' or      \
                                  m.chat.type == 'supergroup')   )
@@ -77,16 +73,21 @@ def main_handler(m):
     for user in mentioned_users:
         tmp = d[user] if user in d else None
         if (tmp):
-            bot.forward_message(tmp, m.chat.id, m.message_id)
             try:
+              bot.forward_message(tmp, m.chat.id, m.message_id)
               bot.send_message(tmp,
                                replies['options'].format(m.chat.title),
                                reply_markup=markup,
                                parse_mode='HTML')
             except telebot.apihelper.ApiException as e:
               if e.result.status_code == 403:
-                  del d[user]
-                  d.sync()
+                print("Removing {} ({}) from database".format(user, d[user]))
+                try:
+                    del d[user]
+                    d.sync()
+                except KeyError: pass
+              else:
+                print("Exception during main handler: {}".format(e))
 
-print('TagAlertBot is now running...')
+print('Bot started:\n{}'.format(n))
 bot.polling(none_stop=True)
