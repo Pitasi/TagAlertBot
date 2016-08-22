@@ -23,6 +23,7 @@ Source code: https://github.com/Pitasi/TagAlertBot\n\
     'retrieve':         'Find the message',
     'retrieve_group':   'Here is your message, @{}.',
     'retrieve_success': 'Done!\nNow check the group of the message.',
+    'no_username':      'Sorry.\nYou need to set an username from Telegram\'s settings before using me.',
     'error':            'Sorry.\nSomething went wrong.'
 }
 # end configuration
@@ -45,6 +46,10 @@ def callback_handler(call):
 
 @bot.message_handler(commands=['help', 'start'])
 def help_handler(m):
+    if not m.from_user.username:
+        bot.reply_to(m, replies['no_username'])
+        return
+
     d[m.from_user.username.lower()] = m.from_user.id
     d.sync()
     is_group = m.chat.type == 'group' or m.chat.type == 'supergroup'
