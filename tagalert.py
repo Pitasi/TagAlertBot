@@ -68,26 +68,28 @@ def main_handler(m):
     mentioned_users = set()
     for k in m.entities:
         if k.type == 'mention':
-            mentioned_users.add(
-                m.text[k.offset + 1 : k.offset + k.length].lower())
-    for user in mentioned_users:
-        tmp = d[user] if user in d else None
-        if (tmp):
+            username = m.text[k.offset + 1 : k.offset + k.length].lower()
+            user_id = d[username] if username in d else None
+            if user_id:
+                status = bot.get_chat_member(m.chat.id, user_id).status
+                if status != 'left' && status != 'kicked':
+                    mentioned_users.add((user_id, username))
+    for (user_id, username) in mentioned_users:
+        try:
+          bot.forward_message(user_id, m.chat.id, m.message_id)
+          bot.send_message(user_id,
+                           replies['options'].format(m.chat.title),
+                           reply_markup=markup,
+                           parse_mode='HTML')
+        except telebot.apihelper.ApiException as e:
+          if e.result.status_code == 403:
+            print("Removing {} ({}) from database".format(username, d[user]))
             try:
-              bot.forward_message(tmp, m.chat.id, m.message_id)
-              bot.send_message(tmp,
-                               replies['options'].format(m.chat.title),
-                               reply_markup=markup,
-                               parse_mode='HTML')
-            except telebot.apihelper.ApiException as e:
-              if e.result.status_code == 403:
-                print("Removing {} ({}) from database".format(user, d[user]))
-                try:
-                    del d[user]
-                    d.sync()
-                except KeyError: pass
-              else:
-                print("Exception during main handler: {}".format(e))
+                del d[username]
+                d.sync()
+            except KeyError: pass
+          else:
+            print("Exception during main handler: {}".format(e))
 
 print('Bot started:\n{}'.format(n))
 bot.polling(none_stop=True)
