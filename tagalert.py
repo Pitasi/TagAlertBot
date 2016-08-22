@@ -43,7 +43,7 @@ def callback_handler(call):
         print("Exception during callback: {}".format(e))
         bot.answer_callback_query(call.id, text=replies['error'], show_alert=True)
 
-@bot.message_handler(func=lambda m: m.chat.type != 'group' and m.chat.type != 'supergroup')
+@bot.message_handler(commands=['help', 'start'])
 def help_handler(m):
     d[m.from_user.username.lower()] = m.from_user.id
     d.sync()
@@ -72,7 +72,7 @@ def main_handler(m):
             user_id = d[username] if username in d else None
             if user_id:
                 status = bot.get_chat_member(m.chat.id, user_id).status
-                if status != 'left' && status != 'kicked':
+                if status != 'left' and status != 'kicked':
                     mentioned_users.add((user_id, username))
     for (user_id, username) in mentioned_users:
         try:
