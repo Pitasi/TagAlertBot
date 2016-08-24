@@ -88,7 +88,7 @@ def main_handler(m):
                            parse_mode='HTML')
         except telebot.apihelper.ApiException as e:
           if e.result.status_code == 403:
-            print("Removing {} ({}) from database".format(username, d[user]))
+            print("Removing {} ({}) from database".format(username, user_id))
             try:
                 del d[username]
                 d.sync()
