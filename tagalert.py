@@ -19,6 +19,12 @@ Just add @TagAlertBot in your groups and I\'ll start working.\n\
 When you\'ll get tagged I\'ll send a message to you.\n\n\
 Source code: https://github.com/Pitasi/TagAlertBot\n\
  - a bot by @Zaphodias.',
+    'main_text':        '<b>[ Incoming Message ]</b>\n\n<b>[ FROM ]</b>\n' +
+                        u'\U0001f464' +
+                        '  {}\n<b>[ GROUP ]</b>\n' +
+                        u'\U0001f465' +
+                        '  {}\n<b>[ TEXT ]</b> \n' +
+                        u'\u2709\ufe0f' + '  {}',
     'options':          'From group: <b>{}</b>\nAvailable operations:',
     'retrieve':         'Find the message',
     'retrieve_group':   'Here is your message, @{}.',
@@ -97,11 +103,14 @@ def main_handler(m):
                 except Exception: return
     for (user_id, username) in mentioned_users:
         try:
-          bot.forward_message(user_id, m.chat.id, m.message_id)
           bot.send_message(user_id,
-                           replies['options'].format(m.chat.title),
-                           reply_markup=markup,
-                           parse_mode='HTML')
+                           replies['main_text'].format('{} {} {}'.format(m.from_user.first_name,
+                                                                         m.from_user.last_name if m.from_user.last_name else '',
+                                                                         '(@{})'.format(m.from_user.username) if m.from_user.username else ''),
+                                                       m.chat.title,
+                                                       m.text),
+                          reply_markup=markup,
+                          parse_mode='HTML')
         except telebot.apihelper.ApiException as e:
           if e.result.status_code == 403:
             remove_user(username)
