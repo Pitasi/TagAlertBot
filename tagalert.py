@@ -32,6 +32,14 @@ d   = shelve.open(config['db_path'])
 bot = telebot.TeleBot(config['token'], threaded=False)
 n = bot.get_me()
 
+def remove_user(username):
+    if not username: return
+    try:
+        print("Removing {} ({}) from database".format(username, d[username]))
+        del d[username]
+        d.sync()
+    except KeyError: pass
+
 @bot.callback_query_handler(func=lambda call: call.data[:9] == "/retrieve")
 def callback_handler(call):
     m_id = call.data[10:].split('_')
@@ -41,9 +49,8 @@ def callback_handler(call):
                         reply_to_message_id=int(m_id[0]))
         bot.answer_callback_query(call.id, text=replies['retrieve_success'], show_alert=True)
     except Exception as e:
-        print("Exception during callback: {}".format(e))
-        try:
-            bot.answer_callback_query(call.id, text=replies['error'], show_alert=True)
+        print("[CALLBACK HANDLER EXCEPTION] [{} - {}]\n{}".format(call.from_user.username, call.from_user.id, e))
+        try: bot.answer_callback_query(call.id, text=replies['error'], show_alert=True)
         except Exception: pass
 
 @bot.message_handler(commands=['help', 'start'])
@@ -59,8 +66,11 @@ def help_handler(m):
     is_group = m.chat.type == 'group' or m.chat.type == 'supergroup'
     try:
         bot.reply_to(m, replies['start_group'] if is_group else replies['start_private'])
+    except telebot.apihelper.ApiException as e:
+        if e.result.status_code == 403:
+            remove_user(m.from_user.username)
     except Exception as e:
-        print("Exception during help handler: {}".format(e))
+        print("[HELP HANDLER EXCEPTION] [{} - {}]\n{}".format(m.from_user.username, m.from_user.id, e))
 
 @bot.message_handler(func=lambda m:                           \
                                 m.entities and                  \
@@ -94,13 +104,9 @@ def main_handler(m):
                            parse_mode='HTML')
         except telebot.apihelper.ApiException as e:
           if e.result.status_code == 403:
-            print("Removing {} ({}) from database".format(username, user_id))
-            try:
-                del d[username]
-                d.sync()
-            except KeyError: pass
+            remove_user(username)
           else:
-            print("Exception during main handler: {}".format(e))
+            print("[MAIN HANDLER EXCEPTION] [{} - {}]\n{}".format(m.from_user.username, m.from_user.id, e))
 
 print('Bot started:\n{}'.format(n))
 bot.polling(none_stop=True)
