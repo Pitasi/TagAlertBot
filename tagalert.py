@@ -42,12 +42,16 @@ def callback_handler(call):
         bot.answer_callback_query(call.id, text=replies['retrieve_success'], show_alert=True)
     except Exception as e:
         print("Exception during callback: {}".format(e))
-        bot.answer_callback_query(call.id, text=replies['error'], show_alert=True)
+        try:
+            bot.answer_callback_query(call.id, text=replies['error'], show_alert=True)
+        except Exception: pass
 
 @bot.message_handler(commands=['help', 'start'])
 def help_handler(m):
     if not m.from_user.username:
-        bot.reply_to(m, replies['no_username'])
+        try: bot.reply_to(m, replies['no_username'])
+        except Exception: pass
+
         return
 
     d[m.from_user.username.lower()] = m.from_user.id
@@ -76,9 +80,11 @@ def main_handler(m):
             username = m.text[k.offset + 1 : k.offset + k.length].lower()
             user_id = d[username] if username in d else None
             if user_id:
-                status = bot.get_chat_member(m.chat.id, user_id).status
-                if status != 'left' and status != 'kicked':
-                    mentioned_users.add((user_id, username))
+                try:
+                    status = bot.get_chat_member(m.chat.id, user_id).status
+                    if status != 'left' and status != 'kicked':
+                        mentioned_users.add((user_id, username))
+                except Exception: return
     for (user_id, username) in mentioned_users:
         try:
           bot.forward_message(user_id, m.chat.id, m.message_id)
