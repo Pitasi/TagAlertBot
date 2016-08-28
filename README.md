@@ -1,6 +1,5 @@
 # TagAlertBot
-Telegram bot that notifies users when they are tagged in groups,
-with advanced features and multi-language support.
+Telegram bot that notifies users when they are tagged in groups.
 
 You can freely user the bot already running: @TagAlertBot (http://telegram.me/tagalertbot)
 
@@ -17,8 +16,7 @@ I'm not logging anything.
 ### Requirements
 * Python 3
 ```bash
-sudo apt-get install python3 python3-dev
-sudo apt-get install python3-setuptools
+sudo apt-get install python3 python3-dev python3-setuptools
 sudo easy_install3 pip
 ```
 
@@ -28,21 +26,30 @@ sudo pip3 install pyTelegramBotAPI
 ```
 * A Telegram's bot token
 
-[How to obtain a token for telegram](https://unnikked.ga/getting-started-with-telegram-bots/)
+Contact @BotFather (http://telegram.me/botfather) to create your bot account and get the token.
 
-
-### Run the bot
+### Running the bot
 ```bash
+# Clone this repo
 $ git clone https://github.com/pitasi/TagAlertBot
+
+# Open the folder just downloaded
 $ cd TagAlertBot
+
+# Create the configuration file based on example
 $ cp config.py.example config.py
-```
 
-Edit `tagalert.py` and `config.py` with you preferences.
-
-```bash
+# Edit `tagalert.py` and `config.py` with you preferences.
+# Finally run the bot
 $ python3 tagalert.py
 ```
+
+### Updating the bot
+To be sure you are running the last version of TagAlert, just go inside the folder and:
+```bash
+$ git pull
+```
+then restart the script.
 
 ### How to be sure the bot doesn't restart or crash
 
