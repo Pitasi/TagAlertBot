@@ -1,6 +1,8 @@
 # TagAlertBot
 Telegram bot that notifies users when they are tagged in groups.
 
+![Image of Yaktocat](http://i.imgur.com/JGmQgEw.gif)
+
 See the bot in action!
 Add @TagAlertBot (http://telegram.me/tagalertbot) to your group!
 
