@@ -17,7 +17,7 @@ replies = {
 You are now enabled to receive notifications from me, \
 Just add @TagAlertBot in your groups and I\'ll start working.\n\
 When you\'ll get tagged I\'ll send a message to you.\n\n\
-Source code: https://github.com/Pitasi/TagAlertBot\n\
+Source code and infos: http://tagalert.pitasi.space/\n\
  - a bot by @Zaphodias.',
     'main_text':        '<b>[ Incoming Message ]</b>\n\n<b>[ FROM ]</b>\n' +
                         u'\U0001f464' +
