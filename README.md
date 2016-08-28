@@ -1,12 +1,13 @@
 # TagAlertBot
 Telegram bot that notifies users when they are tagged in groups.
 
-You can freely user the bot already running: @TagAlertBot (http://telegram.me/tagalertbot)
+See the bot in action!
+Add @TagAlertBot (http://telegram.me/tagalertbot) to your group!
 
 Written in Python 3 and powered by
 [pyTelegramBotAPI](https://github.com/eternnoir/pyTelegramBotAPI).
 
-Support my project and keeping up the server by donating 50 cents: http://paypal.me/pitasi.
+Buy me a coffee: http://paypal.me/pitasi.
 
 ### Privacy
 A lot of people asked for what is being logged and what I'm doing with these logs.
