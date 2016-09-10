@@ -1,7 +1,4 @@
 config = {
-    # path to your database file
-    'db_path':    './userdb',
-
     # telegram token (contact @BotFather for getting one)
     'token':      'YOUR TELEGRAM TOKEN'
 }
