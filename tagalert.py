@@ -72,17 +72,19 @@ def help_handler(m):
     if not m.from_user.username:
         try: bot.reply_to(m, replies['no_username'])
         except Exception: pass
-
         return
 
     add_user(m.from_user.username, m.from_user.id)
     is_group = m.chat.type == 'group' or m.chat.type == 'supergroup'
-    try:
-        last_message_time = group_flood[m.chat.id] if m.chat.id in group_flood else None
 
-        if (not last_message_time or m.date > last_message_time + config['help_flood_time']):
-            bot.reply_to(m, replies['start_group'] if is_group else replies['start_private'])
-            group_flood[m.chat.id] = m.date
+    try:
+        if is_group:
+            last_message_time = group_flood[m.chat.id] if m.chat.id in group_flood else None
+            if (not last_message_time or m.date > last_message_time + config['help_flood_time']):
+                bot.reply_to(m, replies['start_group'])
+                group_flood[m.chat.id] = m.date
+        else:
+            bot.send_message(m.chat.id, replies['start_private'])
 
     except telebot.apihelper.ApiException as e:
         if e.result.status_code == 403 or e.result.status_code == 400:
@@ -133,5 +135,5 @@ def main_handler(m):
 def store_user(m):
   add_user(m.from_user.username, m.from_user.id)
 
-print('Bot started:\n{}'.format(n))
+print('Bot started.\nListening on @{}.'.format(n.username))
 bot.polling(none_stop=True)
