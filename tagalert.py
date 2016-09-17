@@ -37,6 +37,7 @@ Source code and infos: http://tagalert.pitasi.space/\n\
 d   = shelve.open(config['db_path'])
 bot = telebot.TeleBot(config['token'], threaded=False)
 n = bot.get_me()
+group_flood = {}
 
 def remove_user(username):
     if not username: return
@@ -77,7 +78,12 @@ def help_handler(m):
     add_user(m.from_user.username, m.from_user.id)
     is_group = m.chat.type == 'group' or m.chat.type == 'supergroup'
     try:
-        bot.reply_to(m, replies['start_group'] if is_group else replies['start_private'])
+        last_message_time = group_flood[m.chat.id] if m.chat.id in group_flood else None
+
+        if (not last_message_time or m.date > last_message_time + config['help_flood_time']):
+            bot.reply_to(m, replies['start_group'] if is_group else replies['start_private'])
+            group_flood[m.chat.id] = m.date
+
     except telebot.apihelper.ApiException as e:
         if e.result.status_code == 403 or e.result.status_code == 400:
             remove_user(m.from_user.username)
