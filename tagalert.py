@@ -7,8 +7,7 @@
 ##################################################
 
 import telebot
-import requests
-import json
+import shelve
 from config import *
 
 replies = {
@@ -35,20 +34,24 @@ Source code and infos: http://tagalert.pitasi.space/\n\
 }
 # end configuration
 
+d   = shelve.open(config['db_path'])
 bot = telebot.TeleBot(config['token'], threaded=False)
 n = bot.get_me()
 
-def get_id_by_username(self, username):
-    api_url = 'https://api.pwrtelegram.xyz/bot{}/getChat'.format(self.token)
-    params = {
-        'chat_id': '@{}'.format(username)
-    }
-    r = requests.get(api_url, params)
-    parsed = json.loads(r.text)
-    if parsed['ok']: return parsed['result']['id']
-    return False
+def remove_user(username):
+    if not username: return
+    try:
+        print("Removing {} ({}) from database".format(username, d[username]))
+        del d[username]
+        d.sync()
+    except KeyError: pass
 
-bot.get_id_by_username = get_id_by_username
+def add_user(username, user_id):
+    if not username or not user_id: return
+    try:
+        d[username.lower()] = user_id
+        d.sync()
+    except Exception as e: print(e)
 
 @bot.callback_query_handler(func=lambda call: call.data[:9] == "/retrieve")
 def callback_handler(call):
@@ -68,12 +71,16 @@ def help_handler(m):
     if not m.from_user.username:
         try: bot.reply_to(m, replies['no_username'])
         except Exception: pass
+
         return
 
+    add_user(m.from_user.username, m.from_user.id)
     is_group = m.chat.type == 'group' or m.chat.type == 'supergroup'
     try:
         bot.reply_to(m, replies['start_group'] if is_group else replies['start_private'])
-    except telebot.apihelper.ApiException as e: pass
+    except telebot.apihelper.ApiException as e:
+        if e.result.status_code == 403 or e.result.status_code == 400:
+            remove_user(m.from_user.username)
     except Exception as e:
         print("[HELP HANDLER EXCEPTION] [{} - {}]\n{}".format(m.from_user.username, m.from_user.id, e))
 
@@ -93,8 +100,7 @@ def main_handler(m):
     for k in m.entities:
         if k.type == 'mention':
             username = m.text[k.offset + 1 : k.offset + k.length].lower()
-            user_id = bot.get_id_by_username(bot, username)
-            print('@{} - {}'.format(username, user_id))
+            user_id = d[username] if username in d else None
             if user_id:
                 try:
                     status = bot.get_chat_member(m.chat.id, user_id).status
@@ -111,7 +117,15 @@ def main_handler(m):
                                                        m.text),
                           reply_markup=markup,
                           parse_mode='HTML')
-        except telebot.apihelper.ApiException as e: pass
+        except telebot.apihelper.ApiException as e:
+          if e.result.status_code == 403 or e.result.status_code == 400:
+            remove_user(username)
+          else:
+            print("[MAIN HANDLER EXCEPTION] [{} - {}]\n{}".format(m.from_user.username, m.from_user.id, e))
+
+@bot.message_handler(func=lambda m: True)
+def store_user(m):
+  add_user(m.from_user.username, m.from_user.id)
 
 print('Bot started:\n{}'.format(n))
 bot.polling(none_stop=True)
