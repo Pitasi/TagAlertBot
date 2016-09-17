@@ -30,7 +30,8 @@ Source code and infos: http://tagalert.pitasi.space/\n\
     'retrieve_group':   'Here is your message, @{}.',
     'retrieve_success': 'Done!\nNow check the group of the message.',
     'no_username':      'Sorry.\nYou need to set an username from Telegram\'s settings before using me.',
-    'error':            'Sorry.\nSomething went wrong.'
+    'error':            'Sorry.\nSomething went wrong.',
+    'retrieve_limit_exceeded': 'Limit exceeded for this message.'
 }
 # end configuration
 
@@ -38,6 +39,7 @@ d   = shelve.open(config['db_path'])
 bot = telebot.TeleBot(config['token'], threaded=False)
 n = bot.get_me()
 group_flood = {}
+retrieves_flood = {}
 
 def remove_user(username):
     if not username: return
@@ -58,10 +60,15 @@ def add_user(username, user_id):
 def callback_handler(call):
     m_id = call.data[10:].split('_')
     try:
-        bot.send_message(-int(m_id[1]),
-                        replies['retrieve_group'].format(call.from_user.username),
-                        reply_to_message_id=int(m_id[0]))
-        bot.answer_callback_query(call.id, text=replies['retrieve_success'], show_alert=True)
+        retrieved_times = retrieves_flood[call.data] if call.data in retrieves_flood else 0
+        if retrieved_times < config['retrieves_limit']:
+            bot.send_message(-int(m_id[1]),
+                            replies['retrieve_group'].format(call.from_user.username),
+                            reply_to_message_id=int(m_id[0]))
+            retrieves_flood[call.data] = retrieved_times + 1
+            bot.answer_callback_query(call.id, text=replies['retrieve_success'], show_alert=True)
+        else:
+            bot.answer_callback_query(call.id, text=replies['retrieve_limit_exceeded'], show_alert=True)
     except Exception as e:
         print("[CALLBACK HANDLER EXCEPTION] [{} - {}]\n{}".format(call.from_user.username, call.from_user.id, e))
         try: bot.answer_callback_query(call.id, text=replies['error'], show_alert=True)

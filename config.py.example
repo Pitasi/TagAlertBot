@@ -6,5 +6,8 @@ config = {
     'token':            'YOUR TELEGRAM TOKEN',
 
     # seconds between allowed /help in groups
-    'help_flood_time':  10
+    'help_flood_time':  10,
+
+    # maximum times a message can be retrieved (Find the message button)
+    'retrieves_limit': 1
 }
