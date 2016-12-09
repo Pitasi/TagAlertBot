@@ -1,4 +1,3 @@
-userdb
-userdb.*
-config.py
-__pycache__/
+users*
+config.js
+node_modules/
