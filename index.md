@@ -1,15 +1,15 @@
 # TagAlertBot
 Telegram bot that notifies users when they are tagged in groups.
 
+Do you like my works? Help me buying a beer: http://paypal.me/pitasi.
+
 ![Tag Alert Bot](http://i.imgur.com/JGmQgEw.gif)
 
 See the bot in action!
 Add @TagAlertBot (http://telegram.me/tagalertbot) to your group!
 
-Written in Python 3 and powered by
-[pyTelegramBotAPI](https://github.com/eternnoir/pyTelegramBotAPI).
-
-Buy me a coffee: http://paypal.me/pitasi.
+Written in Node.js and powered by
+[node-telegram-bot-api](https://github.com/yagop/node-telegram-bot-api).
 
 ### Privacy
 A lot of people asked for what is being logged and what I'm doing with these logs.
@@ -17,16 +17,10 @@ A lot of people asked for what is being logged and what I'm doing with these log
 I'm not logging anything.
 
 ### Requirements
-* Python 3
-```bash
-sudo apt-get install python3 python3-dev python3-setuptools
-sudo easy_install3 pip
-```
+* Node.js and npm
 
-* pyTelegramBotAPI module
-```bash
-sudo pip3 install pyTelegramBotAPI
-```
+https://nodejs.org/en/download/package-manager/
+
 * A Telegram's bot token
 
 Contact @BotFather (http://telegram.me/botfather) to create your bot account and get the token.
@@ -40,11 +34,15 @@ $ git clone https://github.com/pitasi/TagAlertBot
 $ cd TagAlertBot
 
 # Create the configuration file based on example
-$ cp config.py.example config.py
+$ cp config.example.js config.js
 
-# Edit `tagalert.py` and `config.py` with you preferences.
-# Finally run the bot
-$ python3 tagalert.py
+# Edit `config.js`.
+
+# Install dependencies
+$ npm install node-telegram-bot-api
+
+# Run the bot
+$ node tagalert
 ```
 
 ### Updating the bot
@@ -54,7 +52,7 @@ $ git pull
 ```
 then restart the script.
 
-### How to be sure the bot doesn't restart or crash
+### How to be sure the bot doesn't crash
 
 I'm actually using [PM2](https://github.com/Unitech/pm2) to be sure that my bot is turned on, even if some exceptions occurs.
 
