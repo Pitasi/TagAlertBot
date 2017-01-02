@@ -1,12 +1,12 @@
 # TagAlertBot
 Telegram bot that notifies users when they are tagged in groups.
 
-Do you like my works? Help me buying a beer: http://paypal.me/pitasi.
+Do you like my works? Help me buying a beer: [http://paypal.me/pitasi](http://paypal.me/pitasi).
 
 ![Tag Alert Bot](http://i.imgur.com/JGmQgEw.gif)
 
 See the bot in action!
-Add @TagAlertBot (http://telegram.me/tagalertbot) to your group!
+Add [@TagAlertBot](http://telegram.me/tagalertbot) to your group!
 
 Written in Node.js and powered by
 [node-telegram-bot-api](https://github.com/yagop/node-telegram-bot-api).
@@ -19,11 +19,11 @@ I'm not logging anything.
 ### Requirements
 * Node.js and npm
 
-https://nodejs.org/en/download/package-manager/
+How to: [https://nodejs.org/en/download/package-manager/](https://nodejs.org/en/download/package-manager/)
 
 * A Telegram's bot token
 
-Contact @BotFather (http://telegram.me/botfather) to create your bot account and get the token.
+Contact [@BotFather](http://telegram.me/botfather) to create your bot account and get the token.
 
 ### Running the bot
 ```bash
