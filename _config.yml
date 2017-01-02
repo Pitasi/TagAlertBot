@@ -1,0 +1,8 @@
+title: TagAlertBot
+description: Get notification when tagged in a group
+google_analytics: 
+show_downloads: true
+theme: jekyll-theme-hacker
+
+gems:
+  - jekyll-mentions
