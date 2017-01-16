@@ -16,16 +16,14 @@ var TelegramBot = require('node-telegram-bot-api')
 var bot = new TelegramBot(config.token, {polling: {timeout: 1, interval: 1000}})
 
 // Send a message to the admin when bot starts
-bot.getMe().then(function (me) {
+bot.getMe().then((me) => {
   bot.sendMessage(config.adminId, util.format(replies.booting, me.username))
 })
 
 function removeUser(username) {
   if (!username) return
-  db.run("DELETE FROM users WHERE username=?", username, function(err) {
-    if (err) {
-      return
-    }
+  db.run("DELETE FROM users WHERE username=?", username, (err) => {
+    if (err) return
     console.log("Removing @%s from database", username)
   })
 }
@@ -33,10 +31,10 @@ function removeUser(username) {
 function addUser(username, userId) {
   if (!username || !userId) return
   var loweredUsername = username.toLowerCase()
-  db.run("INSERT INTO users VALUES (?, ?)", userId, loweredUsername, function(err, res) {
+  db.run("INSERT INTO users VALUES (?, ?)", userId, loweredUsername, (err, res) => {
     if (err) {
       // User already in db, updating him
-      db.run("UPDATE users SET username=? WHERE id=?", loweredUsername, userId, function (err, res) {
+      db.run("UPDATE users SET username=? WHERE id=?", loweredUsername, userId, (err, res) => {
         if(err) return
       })
     }
@@ -94,7 +92,7 @@ function retrievedTimes(messageId, groupId) {
   return 0
 }
 
-bot.on('callback_query', function (call) {
+bot.on('callback_query', (call) => {
   var splitted = call.data.split('_')
   if (splitted[0] === '/retrieve') {
     var messageId = splitted[1]
@@ -112,12 +110,12 @@ bot.on('callback_query', function (call) {
   }
 })
 
-bot.onText(/\/start/, function (msg) {
+bot.onText(/\/start/, (msg) => {
   if (msg.chat.type === 'private')
     bot.sendMessage(msg.chat.id, replies.start_private, {parse_mode: 'HTML'})
 })
 
-bot.onText(/^\/info$|^\/info@TagAlertBot$/gi, function (msg) {
+bot.onText(/^\/info$|^\/info@TagAlertBot$/gi, (msg) => {
  if (msg.chat.type != 'private')
    bot.sendMessage(msg.chat.id, replies.start_group)
  else if (!msg.from.username)
@@ -126,7 +124,7 @@ bot.onText(/^\/info$|^\/info@TagAlertBot$/gi, function (msg) {
    bot.sendMessage(msg.chat.id, replies.start_private, {parse_mode: 'HTML'})
 })
 
-bot.on('message', function (msg) {
+bot.on('message', (msg) => {
   addUser(msg.from.username, msg.from.id)
 
   if (msg.chat.type !== 'group' &&
@@ -173,14 +171,13 @@ bot.on('message', function (msg) {
   else if (msg.caption) {
     var matched = msg.caption.match(/@[a-z0-9]*/gi)
     for (var i in matched) {
-      var isEqual = function(u1, u2) {if (u1 && u2) return u1.toLowerCase() === u2.toLowerCase() else return false}
       var username = matched[i].trim().substring(1).toLowerCase()
       toBeNotified.add(username)
     }
   }
 
   // helpful to check if user is tagging himself
-  var isEqual = function(u1, u2) {
+  var isEqual = (u1, u2) => {
     if (u1 && u2) return u1.toLowerCase() === u2.toLowerCase()
     else return false
   }
