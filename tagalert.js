@@ -145,7 +145,7 @@ bot.on('message', (msg) => {
   if (msg.left_chat_member) {
     var userId = msg.left_chat_member.id
     if (userId == bot.myId)
-      removeGroup(groupId)
+      removeGroup(msg.chat.id)
     else
       removeUserFromGroup(userId, msg.chat.id)
     return
