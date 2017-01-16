@@ -23,9 +23,9 @@ module.exports = {
                         '\u2709\ufe0f  %s',
     'options':          'From group: <b>%s</b>\nAvailable operations:',
     'retrieve':         'Find the message',
-    'retrieve_group':   'Here is your message, @%s.',
+    'retrieve_group':   'Here is your message, %s.',
     'retrieve_success': 'Done!\nNow check the group of the message.',
     'no_username':      'Sorry.\nYou need to set an username from Telegram\'s settings before using me.',
     'error':            'Sorry.\nSomething went wrong.',
-    'retrieve_limit_exceeded': 'Limit exceeded for this message.'
+    'flooding':         'Too many requests! Try again in a few minutes.'
 }
