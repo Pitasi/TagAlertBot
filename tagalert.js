@@ -151,8 +151,10 @@ bot.on('message', (msg) => {
     return
   }
 
-  if (msg.chat.type !== 'group' &&
-      msg.chat.type !== 'supergroup') return
+  if (
+      (msg.chat.type !== 'group' && msg.chat.type !== 'supergroup') ||
+      (msg.forward_from && msg.forward_from.id == bot.myId)
+    ) return
 
   var toBeNotified = new Set() // avoid duplicate notifications if tagged twice
 
