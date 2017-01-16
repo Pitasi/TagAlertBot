@@ -5,7 +5,6 @@ function AntiFlood() {
 
   this.isFlooding = (userId) => {
     this.users[userId] = (this.users[userId] || 0) + 1
-    console.log(this.users[userId])
     return (this.users[userId] >= config.antiflood)
   }
 

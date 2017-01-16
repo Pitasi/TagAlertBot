@@ -8,6 +8,6 @@ module.exports = {
     // your admin id (contact @userinfobot to know yours)
     'adminId':          123456789,
 
-    // flooding score, tune it as you prefer
-    'antiflood':  1
+    // flooding score, tune it as you prefer but never below 2
+    'antiflood':        2
 }

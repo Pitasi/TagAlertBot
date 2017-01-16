@@ -99,8 +99,8 @@ function notifyUser(user, msg) {
   else if (user.toFixed) notify(user)
 }
 
-function notifyEveryone(groupId, msg) {
-  db.each("SELECT userId FROM groups WHERE groupId=?", groupId, (err, row) => {
+function notifyEveryone(userId, groupId, msg) {
+  db.each("SELECT userId FROM groups WHERE groupId=? AND userId!=?", groupId, userId, (err, row) => {
     if (err) return
     notifyUser(row.userId, msg)
   })
@@ -178,7 +178,7 @@ bot.on('message', (msg) => {
       else if (entity.type === 'hashtag') {
         var hashtag = extract(entity)
         if (hashtag === 'everyone') {
-          if (!af.isFlooding(msg.from.id)) notifyEveryone(msg.chat.id, msg)
+          if (!af.isFlooding(msg.from.id)) notifyEveryone(msg.from.id, msg.chat.id, msg)
         }
         else if (hashtag === 'admin') {
           bot.getChatAdministrators(msg.chat.id).then((admins) => {
