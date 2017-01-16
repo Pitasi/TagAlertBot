@@ -6,151 +6,190 @@
 //   2016 - made with love                          //
 /****************************************************/
 
-var util = require('util');
-var replies = require('./replies.js');
+var util = require('util')
+var replies = require('./replies.js')
 var config = require('./config.js')
-var sqlite3 = require('sqlite3').verbose();
-var db = new sqlite3.Database(config.dbPath);
-var TelegramBot = require('node-telegram-bot-api');
+var sqlite3 = require('sqlite3').verbose()
+var db = new sqlite3.Database(config.dbPath)
+var TelegramBot = require('node-telegram-bot-api')
 
-var bot = new TelegramBot(config.token, {polling: {timeout: 1, interval: 1000}});
+var bot = new TelegramBot(config.token, {polling: {timeout: 1, interval: 1000}})
 
 // Send a message to the admin when bot starts
 bot.getMe().then(function (me) {
-  bot.sendMessage(config.adminId, util.format(replies.booting, me.username));
-});
+  bot.sendMessage(config.adminId, util.format(replies.booting, me.username))
+})
 
 function removeUser(username) {
-  if (!username) return;
+  if (!username) return
   db.run("DELETE FROM users WHERE username=?", username, function(err) {
     if (err) {
-      return;
+      return
     }
-    console.log("Removing @%s from database", username);
-  });
+    console.log("Removing @%s from database", username)
+  })
 }
 
 function addUser(username, userId) {
-  if (!username || !userId) return;
-  var loweredUsername = username.toLowerCase();
+  if (!username || !userId) return
+  var loweredUsername = username.toLowerCase()
   db.run("INSERT INTO users VALUES (?, ?)", userId, loweredUsername, function(err, res) {
     if (err) {
       // User already in db, updating him
       db.run("UPDATE users SET username=? WHERE id=?", loweredUsername, userId, function (err, res) {
-        if(err) return;
-      });
+        if(err) return
+      })
     }
     else
-      console.log("Added @%s (%s) to database", loweredUsername, userId);
-  });
+      console.log("Added @%s (%s) to database", loweredUsername, userId)
+  })
 }
 
-function notifyUser(username, msg) {
-  db.each("SELECT id FROM users WHERE username=?", username.toLowerCase(), function(err, row) {
-    if (err) {
-      return;
-    }
+function notifyUser(user, msg) {
+  var notify = (userId) => {
+    bot.getChatMember(msg.chat.id, row.id).then((res) => {
+      if (res.status == 'left' || res.status == 'kicked') return
+      // User is inside in the group
+      var from = util.format('%s %s %s',
+        msg.from.first_name,
+        msg.from.last_name ? msg.from.last_name : '',
+        msg.from.username ? `(@${msg.from.username})` : ''
+      )
+      var btn = {inline_keyboard:[[{text: replies.retrieve}]]}
+      if (msg.chat.username)
+        btn.inline_keyboard[0][0].url = `telegram.me/${msg.chat.username}/${msg.message_id}`
+      else
+        btn.inline_keyboard[0][0].callback_data = `/retrieve_${msg.message_id}_${-msg.chat.id}`
 
-    bot.getChatMember(msg.chat.id, row.id).then(function(res) {
-      if (res.status !== 'left' && res.status !== 'kicked') {
-        // User is inside in the group
-        var from = util.format('%s %s %s',
-          msg.from.first_name,
-          msg.from.last_name ? msg.from.last_name : '',
-          msg.from.username ? `(@${msg.from.username})` : ''
-        );
-        var btn = {inline_keyboard:[[{text: replies.retrieve}]]};
-        if (msg.chat.username)
-          btn.inline_keyboard[0][0].url = `telegram.me/${msg.chat.username}/${msg.message_id}`;
-        else
-          btn.inline_keyboard[0][0].callback_data = `/retrieve_${msg.message_id}_${-msg.chat.id}`;
-        
-        if (msg.photo) {
-          var final_text = util.format(replies.main_caption, from, msg.chat.title, msg.caption)
-          var file_id = msg.photo[0].file_id
-          bot.sendPhoto(row.id, file_id, {caption: final_text, reply_markup: btn}).then(function(){}, function(){});
-        }
-        else {
-          var final_text = util.format(replies.main_text, from, msg.chat.title, msg.text)
-          bot.sendMessage(row.id,
-                          final_text,
-                          {parse_mode: 'HTML',
-                           reply_markup: btn}).then(function(){}, function(){});
-        }
-
+      if (msg.photo) {
+        var final_text = util.format(replies.main_caption, from, msg.chat.title, msg.caption)
+        var file_id = msg.photo[0].file_id
+        bot.sendPhoto(userId, file_id, {caption: final_text, reply_markup: btn})
+           .then(()=>{}, ()=>{})
       }
-    });
-  });
+      else {
+        var final_text = util.format(replies.main_text, from, msg.chat.title, msg.text)
+        bot.sendMessage(userId,
+                        final_text,
+                        {parse_mode: 'HTML',
+                         reply_markup: btn})
+           .then(()=>{}, ()=>{}) // avoid logs
+      }
+    })
+  }
+
+  if (user.substring) { // user is a string -> get id from db
+    db.each("SELECT id FROM users WHERE username=?", username.toLowerCase(), (err, row) => {
+      if (err) return
+      notify(row.id)
+    })
+  }
+  // user is a number, already the id
+  else notify(user)
 }
 
 function retrievedTimes(messageId, groupId) {
   // TODO: store in database how many times a message is retrieved
   //       return the number and add +1 to the counter
-  return 0;
+  return 0
 }
 
 bot.on('callback_query', function (call) {
-  var splitted = call.data.split('_');
+  var splitted = call.data.split('_')
   if (splitted[0] === '/retrieve') {
-    var messageId = splitted[1];
-    var groupId = splitted[2];
+    var messageId = splitted[1]
+    var groupId = splitted[2]
 
-    var times = retrievedTimes(messageId, groupId);
+    var times = retrievedTimes(messageId, groupId)
     if (times < config.retrievesLimit) {
       bot.sendMessage(-parseInt(groupId),
                       util.format(replies.retrieve_group, call.from.username?call.from.username:call.from.first_name),
-                      {reply_to_message_id: parseInt(messageId)});
-      bot.answerCallbackQuery(call.id, replies.retrieve_success, false);
+                      {reply_to_message_id: parseInt(messageId)})
+      bot.answerCallbackQuery(call.id, replies.retrieve_success, false)
     }
     else
-      bot.answerCallbackQuery(call.id, replies.retrieve_limit_exceeded, true);
+      bot.answerCallbackQuery(call.id, replies.retrieve_limit_exceeded, true)
   }
-});
+})
 
 bot.onText(/\/start/, function (msg) {
   if (msg.chat.type === 'private')
-    bot.sendMessage(msg.chat.id, replies.start_private, {parse_mode: 'HTML'});
-});
+    bot.sendMessage(msg.chat.id, replies.start_private, {parse_mode: 'HTML'})
+})
 
 bot.onText(/^\/info$|^\/info@TagAlertBot$/gi, function (msg) {
  if (msg.chat.type != 'private')
-   bot.sendMessage(msg.chat.id, replies.start_group);
+   bot.sendMessage(msg.chat.id, replies.start_group)
  else if (!msg.from.username)
-   bot.sendMessage(msg.chat.id, replies.no_username);
- else 
-   bot.sendMessage(msg.chat.id, replies.start_private, {parse_mode: 'HTML'});
-});
+   bot.sendMessage(msg.chat.id, replies.no_username)
+ else
+   bot.sendMessage(msg.chat.id, replies.start_private, {parse_mode: 'HTML'})
+})
 
 bot.on('message', function (msg) {
-  addUser(msg.from.username, msg.from.id);
+  addUser(msg.from.username, msg.from.id)
 
   if (msg.chat.type !== 'group' &&
-      msg.chat.type !== 'supergroup') return;
+      msg.chat.type !== 'supergroup') return
 
-  var alreadyNotified = new Set();
-  if (msg.text && msg.entities)
+  var toBeNotified = new Set() // avoid duplicate notifications if tagged twice
+
+  // Text messages
+  if (msg.text && msg.entities) {
+    // Extract (hash)tags from message text
+    var extract = (entity) => {
+      msg.text
+         .substring(entity.offset + 1, entity.offset + entity.length)
+         .toLowerCase()
+    }
+
     for (var i in msg.entities) {
-      var entity = msg.entities[i];
+      var entity = msg.entities[i]
+
+      // Tags
       if (entity.type === 'mention') {
-        var username = msg.text.substring(entity.offset + 1, entity.offset + entity.length)
-                               .toLowerCase()
-        var isEqual = function(u1, u2) {if (u1 && u2) return u1.toLowerCase() === u2.toLowerCase(); else return false;}
-        if (!alreadyNotified.has(username) && !isEqual(msg.from.username, username)) {
-          notifyUser(username, msg);
-          alreadyNotified.add(username);
+        var username = extract(entity)
+        toBeNotified.add(username)
+      }
+
+      // Hashtags
+      else if (entity.type === 'hashtag') {
+        var hashtag = extract(entity)
+        if (hashtag === 'everyone') {
+          // TODO
+        }
+        else if (hashtag === 'admin') {
+          // TODO
         }
       }
-    }
 
-  else if (msg.caption) {
-    var matched = msg.caption.match(/@[a-z0-9]*/gi);
-    for (var i in matched) {
-      var username = matched[i].trim().substring(1).toLowerCase()
-      var isEqual = function(u1, u2) {if (u1 && u2) return u1.toLowerCase() === u2.toLowerCase(); else return false;}
-      if (!alreadyNotified.has(username) && !isEqual(msg.from.username, username)) {
-        notifyUser(username, msg);
-        alreadyNotified.add(username);
-      }
+      // Users without username
+      else if (entity.user)
+        notifyUser(entity.user.id, msg)
     }
   }
-});
+
+  // Images/media captions
+  else if (msg.caption) {
+    var matched = msg.caption.match(/@[a-z0-9]*/gi)
+    for (var i in matched) {
+      var isEqual = function(u1, u2) {if (u1 && u2) return u1.toLowerCase() === u2.toLowerCase() else return false}
+      var username = matched[i].trim().substring(1).toLowerCase()
+      toBeNotified.add(username)
+    }
+  }
+
+  // helpful to check if user is tagging himself
+  var isEqual = function(u1, u2) {
+    if (u1 && u2) return u1.toLowerCase() === u2.toLowerCase()
+    else return false
+  }
+
+  // let's really send notifications
+  toBeNotified.forEach((username) => {
+    // check if user is tagging himself
+    if (!isEqual(msg.from.username, username)) {
+      notifyUser(username, msg)
+    }
+  })
+})
