@@ -11,7 +11,9 @@ const DEBUG = process.argv[2] == '--dev'
 var util = require('util')
 var replies = require('./replies.js')
 var config = require('./config.js')
+var AntiFlood = require('./antiflood.js')
 var sqlite3 = require('sqlite3')
+var af = new AntiFlood()
 var db = new sqlite3.Database(config.dbPath)
 var TelegramBot = require('node-telegram-bot-api')
 
@@ -41,12 +43,10 @@ function addUser(username, userId, chatId) {
   if (!username || !userId) return
 
   var loweredUsername = username.toLowerCase()
-  db.run("INSERT INTO users VALUES (?, ?)", userId, loweredUsername, (err, res) => {
+  db.run("INSERT INTO users VALUES (?, ?, ?, ?)", userId, loweredUsername, + new Date(), 0, (err, res) => {
     if (err) {
       // User already in db, updating him
-      db.run("UPDATE users SET username=? WHERE id=?", loweredUsername, userId, (err, res) => {
-        if(err) return
-      })
+      db.run("UPDATE users SET username=? WHERE id=?", loweredUsername, userId, (err, res) => {})
     }
     else
       console.log("Added @%s (%s) to database", loweredUsername, userId)
@@ -106,42 +106,36 @@ function notifyEveryone(groupId, msg) {
   })
 }
 
-function retrievedTimes(messageId, groupId) {
-  // TODO: store in database how many times a message is retrieved
-  //       return the number and add +1 to the counter
-  return 0
-}
-
 bot.on('callback_query', (call) => {
-  var splitted = call.data.split('_')
-  if (splitted[0] === '/retrieve') {
-    var messageId = splitted[1]
-    var groupId = splitted[2]
-
-    var times = retrievedTimes(messageId, groupId)
-    if (times < config.retrievesLimit) {
+  if (!af.isFlooding(call.from.id)) {
+    var splitted = call.data.split('_')
+    if (splitted[0] === '/retrieve') {
+      var messageId = splitted[1]
+      var groupId = splitted[2]
       bot.sendMessage(-parseInt(groupId),
                       util.format(replies.retrieve_group, call.from.username?'@'+call.from.username:call.from.first_name),
                       {reply_to_message_id: parseInt(messageId)})
       bot.answerCallbackQuery(call.id, replies.retrieve_success, false)
     }
-    else
-      bot.answerCallbackQuery(call.id, replies.retrieve_limit_exceeded, true)
   }
+  else bot.answerCallbackQuery(call.id, replies.flooding, false)
 })
 
 bot.onText(/\/start/, (msg) => {
-  if (msg.chat.type === 'private')
+  if (msg.chat.type !== 'private') return
+
+  if (!af.isFlooding(msg.from.id)) {
     bot.sendMessage(msg.chat.id, replies.start_private, {parse_mode: 'HTML'})
+  }
 })
 
 bot.onText(/^\/info$|^\/info@TagAlertBot$/gi, (msg) => {
- if (msg.chat.type != 'private')
-   bot.sendMessage(msg.chat.id, replies.start_group)
- else if (!msg.from.username)
-   bot.sendMessage(msg.chat.id, replies.no_username)
- else
-   bot.sendMessage(msg.chat.id, replies.start_private, {parse_mode: 'HTML'})
+  if (!af.isFlooding(msg.from.id)) {
+    if (msg.chat.type !== 'private')
+      bot.sendMessage(msg.chat.id, replies.start_group)
+    else
+      bot.sendMessage(msg.chat.id, replies.start_private, {parse_mode: 'HTML'})
+  }
 })
 
 bot.on('message', (msg) => {
@@ -184,7 +178,7 @@ bot.on('message', (msg) => {
       else if (entity.type === 'hashtag') {
         var hashtag = extract(entity)
         if (hashtag === 'everyone') {
-          notifyEveryone(msg.chat.id, msg)
+          if (!af.isFlooding(msg.from.id)) notifyEveryone(msg.chat.id, msg)
         }
         else if (hashtag === 'admin') {
           bot.getChatAdministrators(msg.chat.id).then((admins) => {
