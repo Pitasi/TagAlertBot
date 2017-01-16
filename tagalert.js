@@ -6,10 +6,12 @@
 //   2016 - made with love                          //
 /****************************************************/
 
+const DEBUG = process.argv[2] == '--dev'
+
 var util = require('util')
 var replies = require('./replies.js')
 var config = require('./config.js')
-var sqlite3 = require('sqlite3').verbose()
+var sqlite3 = require('sqlite3')
 var db = new sqlite3.Database(config.dbPath)
 var TelegramBot = require('node-telegram-bot-api')
 
@@ -45,7 +47,7 @@ function addUser(username, userId) {
 
 function notifyUser(user, msg) {
   var notify = (userId) => {
-    bot.getChatMember(msg.chat.id, row.id).then((res) => {
+    bot.getChatMember(msg.chat.id, userId).then((res) => {
       if (res.status == 'left' || res.status == 'kicked') return
       // User is inside in the group
       var from = util.format('%s %s %s',
@@ -77,13 +79,13 @@ function notifyUser(user, msg) {
   }
 
   if (user.substring) { // user is a string -> get id from db
-    db.each("SELECT id FROM users WHERE username=?", username.toLowerCase(), (err, row) => {
+    db.each("SELECT id FROM users WHERE username=?", user.toLowerCase(), (err, row) => {
       if (err) return
       notify(row.id)
     })
   }
   // user is a number, already the id
-  else notify(user)
+  else if (user.toFixed) notify(user)
 }
 
 function retrievedTimes(messageId, groupId) {
@@ -101,7 +103,7 @@ bot.on('callback_query', (call) => {
     var times = retrievedTimes(messageId, groupId)
     if (times < config.retrievesLimit) {
       bot.sendMessage(-parseInt(groupId),
-                      util.format(replies.retrieve_group, call.from.username?call.from.username:call.from.first_name),
+                      util.format(replies.retrieve_group, call.from.username?'@'+call.from.username:call.from.first_name),
                       {reply_to_message_id: parseInt(messageId)})
       bot.answerCallbackQuery(call.id, replies.retrieve_success, false)
     }
@@ -136,9 +138,9 @@ bot.on('message', (msg) => {
   if (msg.text && msg.entities) {
     // Extract (hash)tags from message text
     var extract = (entity) => {
-      msg.text
-         .substring(entity.offset + 1, entity.offset + entity.length)
-         .toLowerCase()
+      return msg.text
+                .substring(entity.offset + 1, entity.offset + entity.length)
+                .toLowerCase()
     }
 
     for (var i in msg.entities) {
@@ -176,6 +178,8 @@ bot.on('message', (msg) => {
     }
   }
 
+  else return
+
   // helpful to check if user is tagging himself
   var isEqual = (u1, u2) => {
     if (u1 && u2) return u1.toLowerCase() === u2.toLowerCase()
@@ -185,7 +189,7 @@ bot.on('message', (msg) => {
   // let's really send notifications
   toBeNotified.forEach((username) => {
     // check if user is tagging himself
-    if (!isEqual(msg.from.username, username)) {
+    if (!isEqual(msg.from.username, username) || DEBUG) {
       notifyUser(username, msg)
     }
   })
