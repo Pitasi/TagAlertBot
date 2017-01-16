@@ -19,19 +19,27 @@ var bot = new TelegramBot(config.token, {polling: {timeout: 1, interval: 1000}})
 
 // Send a message to the admin when bot starts
 bot.getMe().then((me) => {
+  bot.myId = me.id
   bot.sendMessage(config.adminId, util.format(replies.booting, me.username))
 })
 
-function removeUser(username) {
-  if (!username) return
-  db.run("DELETE FROM users WHERE username=?", username, (err) => {
+function removeGroup(groupId) {
+  db.run("DELETE FROM groups WHERE groupId=?", groupId, (err) => {
     if (err) return
-    console.log("Removing @%s from database", username)
+    console.log("Removing group %s", groupId)
   })
 }
 
-function addUser(username, userId) {
+function removeUserFromGroup(userId, groupId) {
+  db.run("DELETE FROM groups WHERE userId=? AND groupId=?", userId, groupId, (err) => {
+    if (err) return
+    console.log("Removing @%s from group %s", userId, groupId)
+  })
+}
+
+function addUser(username, userId, chatId) {
   if (!username || !userId) return
+
   var loweredUsername = username.toLowerCase()
   db.run("INSERT INTO users VALUES (?, ?)", userId, loweredUsername, (err, res) => {
     if (err) {
@@ -43,6 +51,9 @@ function addUser(username, userId) {
     else
       console.log("Added @%s (%s) to database", loweredUsername, userId)
   })
+
+  if (userId !== chatId)
+    db.run("INSERT INTO groups VALUES (?, ?)", chatId, userId, (err) => {})
 }
 
 function notifyUser(user, msg) {
@@ -88,6 +99,13 @@ function notifyUser(user, msg) {
   else if (user.toFixed) notify(user)
 }
 
+function notifyEveryone(groupId, msg) {
+  db.each("SELECT userId FROM groups WHERE groupId=?", groupId, (err, row) => {
+    if (err) return
+    notifyUser(row.userId, msg)
+  })
+}
+
 function retrievedTimes(messageId, groupId) {
   // TODO: store in database how many times a message is retrieved
   //       return the number and add +1 to the counter
@@ -127,7 +145,17 @@ bot.onText(/^\/info$|^\/info@TagAlertBot$/gi, (msg) => {
 })
 
 bot.on('message', (msg) => {
-  addUser(msg.from.username, msg.from.id)
+  addUser(msg.from.username, msg.from.id, msg.chat.id)
+
+  // A user left the chat
+  if (msg.left_chat_member) {
+    var userId = msg.left_chat_member.id
+    if (userId == bot.myId)
+      removeGroup(groupId)
+    else
+      removeUserFromGroup(userId, msg.chat.id)
+    return
+  }
 
   if (msg.chat.type !== 'group' &&
       msg.chat.type !== 'supergroup') return
@@ -156,10 +184,12 @@ bot.on('message', (msg) => {
       else if (entity.type === 'hashtag') {
         var hashtag = extract(entity)
         if (hashtag === 'everyone') {
-          // TODO
+          notifyEveryone(msg.chat.id, msg)
         }
         else if (hashtag === 'admin') {
-          // TODO
+          bot.getChatAdministrators(msg.chat.id).then((admins) => {
+            admins.forEach((admin) => { notifyUser(admin.user.id, msg) })
+          })
         }
       }
 
