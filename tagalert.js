@@ -56,7 +56,7 @@ function addUser(username, userId, chatId) {
     db.run("INSERT INTO groups VALUES (?, ?)", chatId, userId, (err) => {})
 }
 
-function notifyUser(user, msg) {
+function notifyUser(user, msg, silent) {
   var notify = (userId) => {
     bot.getChatMember(msg.chat.id, userId).then((res) => {
       if (res.status == 'left' || res.status == 'kicked') return
@@ -83,7 +83,8 @@ function notifyUser(user, msg) {
         bot.sendMessage(userId,
                         final_text,
                         {parse_mode: 'HTML',
-                         reply_markup: btn})
+                         reply_markup: btn,
+			 disable_notification: silent})
            .then(()=>{}, ()=>{}) // avoid logs
       }
     })
@@ -102,7 +103,7 @@ function notifyUser(user, msg) {
 function notifyEveryone(user, groupId, msg) {
   db.each("SELECT userId FROM groups WHERE groupId=? AND userId<>?", groupId, user, (err, row) => {
     if (err) return
-    notifyUser(row.userId, msg)
+    notifyUser(row.userId, msg, true)
   })
 }
 
@@ -184,14 +185,14 @@ bot.on('message', (msg) => {
         }
         else if (hashtag === 'admin') {
           bot.getChatAdministrators(msg.chat.id).then((admins) => {
-            admins.forEach((admin) => { notifyUser(admin.user.id, msg) })
+            admins.forEach((admin) => { notifyUser(admin.user.id, msg, false) })
           })
         }
       }
 
       // Users without username
       else if (entity.user)
-        notifyUser(entity.user.id, msg)
+        notifyUser(entity.user.id, msg, false)
     }
   }
 
@@ -216,7 +217,7 @@ bot.on('message', (msg) => {
   toBeNotified.forEach((username) => {
     // check if user is tagging himself
     if (!isEqual(msg.from.username, username) || DEBUG) {
-      notifyUser(username, msg)
+      notifyUser(username, msg, false)
     }
   })
 })
