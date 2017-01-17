@@ -6,5 +6,6 @@ var db = new sqlite3.Database(config.dbPath)
 
 db.run("CREATE TABLE users (id INTEGER, username VARCHAR(256), PRIMARY KEY (id, username))")
 db.run("CREATE TABLE groups (groupId INTEGER, userId INTEGER, PRIMARY KEY (groupId, userId))")
+db.run("CREATE TABLE groupSettings (groupId INTEGER, everyone INTEGER, admin INTEGER, PRIMARY KEY (groupId))")
 
 console.log('Script ended.')

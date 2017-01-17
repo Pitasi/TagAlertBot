@@ -107,16 +107,69 @@ function notifyEveryone(user, groupId, msg) {
   })
 }
 
+function updateSettings(setting, chatId, callback) {
+  db.get("SELECT * FROM groupSettings WHERE groupId=?", chatId, (err, row) => {
+    if (err) return console.error(err)
+    if (row) {
+      // group is present in db
+      var newValue = row
+      newValue[setting] = 1 - newValue[setting]
+      db.run("UPDATE groupSettings SET admin=?,everyone=? WHERE groupId=?", newValue.admin, newValue.everyone, chatId, (err, res) => {
+        callback(setting, newValue[setting])
+      })
+    }
+    else {
+      // group is changing settings for the first time
+      var defaultValue = {admin: 1, everyone: 0}
+      defaultValue[setting] = 1 - defaultValue[setting]
+      db.run("INSERT INTO groupSettings VALUES (?,?,?)", chatId, defaultValue.admin, defaultValue.everyone, (err, res) => {
+        console.log(2, setting, defaultValue)
+        callback(setting, defaultValue[setting])
+      })
+    }
+  })
+}
+
+function getSetting(setting, chatId, callback) {
+  db.get("SELECT * FROM groupSettings WHERE groupId=?", chatId, (err, row) => {
+    if (err) return console.error(err)
+    if (row) {
+      if (row[setting]) callback()
+    }
+    else {
+      var defaultValue = {admin: 1, everyone: 0}
+      if (defaultValue[setting]) callback()
+    }
+  })
+}
+
 bot.on('callback_query', (call) => {
   if (!af.isFlooding(call.from.id)) {
-    var splitted = call.data.split('_')
-    if (splitted[0] === '/retrieve') {
-      var messageId = splitted[1]
-      var groupId = splitted[2]
-      bot.sendMessage(-parseInt(groupId),
-                      util.format(replies.retrieve_group, call.from.username?'@'+call.from.username:call.from.first_name),
-                      {reply_to_message_id: parseInt(messageId)})
-      bot.answerCallbackQuery(call.id, replies.retrieve_success, false)
+    switch (call.data) {
+      case 'admin':
+      case 'everyone':
+        bot.getChatAdministrators(call.message.chat.id).then((admins) => {
+          admins.forEach((admin) => {
+            if (call.message.chat.all_members_are_administrators || admin.user.id === call.from.id)
+              return updateSettings(call.data, call.message.chat.id, (setting, status) => {
+                bot.answerCallbackQuery(
+                  call.id, util.format(replies.settings_updated, '#'+setting, status?'enabled':'disabled'), true)
+              })
+
+          })
+        })
+        break
+      default:
+        var splitted = call.data.split('_')
+        if (splitted[0] === '/retrieve') {
+          var messageId = splitted[1]
+          var groupId = splitted[2]
+          bot.sendMessage(-parseInt(groupId),
+          util.format(replies.retrieve_group, call.from.username?'@'+call.from.username:call.from.first_name),
+          {reply_to_message_id: parseInt(messageId)})
+          bot.answerCallbackQuery(call.id, replies.retrieve_success, false)
+        }
+        break
     }
   }
   else bot.answerCallbackQuery(call.id, replies.flooding, false)
@@ -137,6 +190,24 @@ bot.onText(/^\/info$|^\/info@TagAlertBot$/gi, (msg) => {
     else
       bot.sendMessage(msg.chat.id, replies.start_private, {parse_mode: 'HTML'})
   }
+})
+
+bot.onText(/^\/settings(.*)$/gi, (msg) => {
+  if (msg.chat.type === 'private') return
+  bot.getChatAdministrators(msg.chat.id).then((admins) => {
+    admins.forEach((admin) => {
+      if (admin.user.id === msg.from.id)
+        bot.sendMessage(msg.chat.id, replies.settings, {
+          reply_markup: {
+            inline_keyboard: [
+              [{text: replies.admin_settings, callback_data: 'admin'}],
+              [{text: replies.everyone_settings, callback_data: 'everyone'}]
+            ]
+          }
+        })
+        return
+    })
+  })
 })
 
 bot.on('message', (msg) => {
@@ -181,11 +252,15 @@ bot.on('message', (msg) => {
       else if (entity.type === 'hashtag') {
         var hashtag = extract(entity)
         if (hashtag === 'everyone') {
-          notifyEveryone(msg.from.id, msg.chat.id, msg)
+          getSetting('everyone', msg.chat.id, () => {
+              notifyEveryone(msg.from.id, msg.chat.id, msg)
+          })
         }
         else if (hashtag === 'admin') {
-          bot.getChatAdministrators(msg.chat.id).then((admins) => {
-            admins.forEach((admin) => { notifyUser(admin.user.id, msg, false) })
+          getSetting('admin', msg.chat.id, () => {
+            bot.getChatAdministrators(msg.chat.id).then((admins) => {
+              admins.forEach((admin) => { notifyUser(admin.user.id, msg, false) })
+            })
           })
         }
       }
