@@ -1,5 +1,6 @@
 module.exports = {
     'booting':            '@%s is starting now.',
+    'add_to_group':       'Add me to a group!',
     'start_group':        'Contact me in private for more infos and enabling me.',
     'start_private':      'Hello.\n' +
                           '<b>You are now enabled</b> to receive notifications from me, ' +
