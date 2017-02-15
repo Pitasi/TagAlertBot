@@ -43,7 +43,7 @@ function addUser(username, userId, chatId) {
   if (!username || !userId) return
 
   var loweredUsername = username.toLowerCase()
-  db.run("INSERT INTO users VALUES (?, ?, ?, ?)", userId, loweredUsername, + new Date(), 0, (err, res) => {
+  db.run("INSERT INTO users VALUES (?, ?)", userId, loweredUsername, (err, res) => {
     if (err) {
       // User already in db, updating him
       db.run("UPDATE users SET username=? WHERE id=?", loweredUsername, userId, (err, res) => {})
@@ -167,12 +167,12 @@ bot.on('callback_query', (call) => {
           bot.sendMessage(-parseInt(groupId),
           util.format(replies.retrieve_group, call.from.username?'@'+call.from.username:call.from.first_name),
           {reply_to_message_id: parseInt(messageId)})
-          bot.answerCallbackQuery(call.id, replies.retrieve_success, false)
+          bot.answerCallbackQuery(call.id, replies.retrieve_success, true)
         }
         break
     }
   }
-  else bot.answerCallbackQuery(call.id, replies.flooding, false)
+  else bot.answerCallbackQuery(call.id, replies.flooding, true)
 })
 
 bot.onText(/\/start/, (msg) => {
