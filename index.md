@@ -41,6 +41,9 @@ $ cp config.example.js config.js
 # Install dependencies
 $ npm install node-telegram-bot-api
 
+# Very important step!!!
+# send /setprivacy to @BotFather and disable it
+
 # Run the bot
 $ node tagalert
 ```
