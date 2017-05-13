@@ -1,23 +1,23 @@
 /****************************************************/
-//   TagAlertBot (https://telegram.me/tagalertbot)  //
-//   Simple notifications for mentions              //
+//   TagAlertBot (https://t.me/tagalertbot)         //
+//   Simple notifications bot for mentions          //
 //                                                  //
 //   Author: Antonio Pitasi (@Zaphodias)            //
 //   2016 - made with love                          //
 /****************************************************/
 
-const DEBUG = process.argv[2] == '--dev'
+const DEBUG = process.argv[2] == '--dev' || process.env.DEBUG == 'true'
 
 var util = require('util')
 var replies = require('./replies.js')
-var config = require('./config.js')
+var config = require('./data/config.js')
 var AntiFlood = require('./antiflood.js')
-var sqlite3 = require('sqlite3')
 var af = new AntiFlood()
-var db = new sqlite3.Database(config.dbPath)
+var pg = require('pg');
+var pool = new pg.Pool(config.pg_pool);
 var TelegramBot = require('node-telegram-bot-api')
 
-var bot = new TelegramBot(config.token, {polling: {timeout: 1, interval: 1000}})
+var bot = new TelegramBot(config.token, {polling: true})
 
 // Send a message to the admin when bot starts
 bot.getMe().then((me) => {
@@ -26,34 +26,26 @@ bot.getMe().then((me) => {
 })
 
 function removeGroup(groupId) {
-  db.run("DELETE FROM groups WHERE groupId=?", groupId, (err) => {
-    if (err) return
+  pool.query("DELETE FROM groups WHERE groupId=$1::bigint", [groupId], function (err) {
     console.log("Removing group %s", groupId)
   })
 }
 
 function removeUserFromGroup(userId, groupId) {
-  db.run("DELETE FROM groups WHERE userId=? AND groupId=?", userId, groupId, (err) => {
-    if (err) return
+  pool.query("DELETE FROM groups WHERE userId=? AND groupId=?", [userId, groupId], function (err) {
     console.log("Removing @%s from group %s", userId, groupId)
   })
 }
 
 function addUser(username, userId, chatId) {
   if (!username || !userId) return
-
   var loweredUsername = username.toLowerCase()
-  db.run("INSERT INTO users VALUES (?, ?)", userId, loweredUsername, (err, res) => {
-    if (err) {
-      // User already in db, updating him
-      db.run("UPDATE users SET username=? WHERE id=?", loweredUsername, userId, (err, res) => {})
-    }
-    else
-      console.log("Added @%s (%s) to database", loweredUsername, userId)
+  pool.query("INSERT INTO users VALUES ($1, $2)", [userId, loweredUsername], function (err) {
+    if (err) pool.query("UPDATE users SET username=$1 WHERE id=$2", [loweredUsername, userId], ()=>{})
+    else console.log("Added @%s (%s) to database", loweredUsername, userId)
   })
-
   if (userId !== chatId)
-    db.run("INSERT INTO groups VALUES (?, ?)", chatId, userId, (err) => {})
+    pool.query("INSERT INTO groups VALUES ($1, $2)", [chatId, userId], ()=>{})
 }
 
 function notifyUser(user, msg, silent) {
@@ -76,7 +68,6 @@ function notifyUser(user, msg, silent) {
         var final_text = util.format(replies.main_caption, from, msg.chat.title, msg.caption)
         var file_id = msg.photo[0].file_id
         bot.sendPhoto(userId, file_id, {caption: final_text, reply_markup: btn})
-           .then(()=>{}, ()=>{})
       }
       else {
         var final_text = util.format(replies.main_text, from, msg.chat.title, msg.text)
@@ -85,36 +76,41 @@ function notifyUser(user, msg, silent) {
                         {parse_mode: 'HTML',
                          reply_markup: btn,
 			 disable_notification: silent})
-           .then(()=>{}, ()=>{}) // avoid logs
       }
     })
   }
 
   if (user.substring) { // user is a string -> get id from db
-    db.each("SELECT id FROM users WHERE username=?", user.toLowerCase(), (err, row) => {
-      if (err) return
-      notify(row.id)
+    pool.query("SELECT id FROM users WHERE username=$1", [user.toLowerCase()], function (err, res) {
+      console.log('notify', user)
+      if (err) return console.error(err)
+      if (res && res.rows && res.rows[0] && res.rows[0].id) {
+        console.log(user, 'fetched', res.rows[0].id)
+        notify(parseInt(res.rows[0].id))
+      }
     })
   }
   // user is a number, already the id
   else if (user.toFixed) notify(user)
+  else { console.error('Invalid parameters!') }
 }
 
 function notifyEveryone(user, groupId, msg) {
-  db.each("SELECT userId FROM groups WHERE groupId=? AND userId<>?", groupId, user, (err, row) => {
-    if (err) return
-    notifyUser(row.userId, msg, true)
+  pool.query("SELECT userId FROM groups WHERE groupId=$1 AND userId<>$2", [groupId, user], function (err, res) {
+    if (err) return console.error(err)
+    for (var i in res.rows) notifyUser(parseInt(res.rows[i].userid), msg, true)
   })
 }
 
 function updateSettings(setting, chatId, callback) {
-  db.get("SELECT * FROM groupSettings WHERE groupId=?", chatId, (err, row) => {
+  pool.query("SELECT * FROM groupSettings WHERE groupId=$1", [chatId], function (err, res) {
     if (err) return console.error(err)
+    var row = res.rows[0]
     if (row) {
       // group is present in db
       var newValue = row
       newValue[setting] = 1 - newValue[setting]
-      db.run("UPDATE groupSettings SET admin=?,everyone=? WHERE groupId=?", newValue.admin, newValue.everyone, chatId, (err, res) => {
+      pool.query("UPDATE groupSettings SET admin=$1,everyone=$2 WHERE groupId=$3", [newValue.admin, newValue.everyone, chatId], function () {
         callback(setting, newValue[setting])
       })
     }
@@ -122,8 +118,7 @@ function updateSettings(setting, chatId, callback) {
       // group is changing settings for the first time
       var defaultValue = {admin: 1, everyone: 0}
       defaultValue[setting] = 1 - defaultValue[setting]
-      db.run("INSERT INTO groupSettings VALUES (?,?,?)", chatId, defaultValue.admin, defaultValue.everyone, (err, res) => {
-        console.log(2, setting, defaultValue)
+      pool.query("INSERT INTO groupSettings VALUES ($1,$2,$3)", [chatId, defaultValue.admin, defaultValue.everyone], function () {
         callback(setting, defaultValue[setting])
       })
     }
@@ -131,15 +126,22 @@ function updateSettings(setting, chatId, callback) {
 }
 
 function getSetting(setting, chatId, callback) {
-  db.get("SELECT * FROM groupSettings WHERE groupId=?", chatId, (err, row) => {
-    if (err) return console.error(err)
-    if (row) {
-      if (row[setting]) callback()
-    }
-    else {
-      var defaultValue = {admin: 1, everyone: 0}
-      if (defaultValue[setting]) callback()
-    }
+  pool.connect().then(client => {
+    var query = client.query("SELECT * FROM groupSettings WHERE groupId=$1", [chatId]);
+    query.on('error', (err) => {console.error(err)})
+    query.on('row', (row) => {
+      if (row) {
+        if (row[setting]) callback()
+      }
+      else {
+        var defaultValue = {admin: 1, everyone: 0}
+        if (defaultValue[setting]) callback()
+      }
+    })
+    query.on('end', client.release)
+  }).catch(e => {
+    client.release()
+    console.error('query error', e.message, e.stack)
   })
 }
 
