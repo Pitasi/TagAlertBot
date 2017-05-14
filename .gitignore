@@ -1,3 +1,2 @@
-users*
-config.js
+*.log
 node_modules/
