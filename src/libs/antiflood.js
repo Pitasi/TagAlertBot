@@ -1,4 +1,4 @@
-var config = require('./config.js')
+var config = require('../../config.js')
 
 function AntiFlood() {
   this.users = {}
