@@ -1,9 +1,10 @@
 {
   "name": "tagalertbot",
-  "version": "2.0.0",
-  "description": "Telegram bot that notifies users when they are tagged in groups. Edit",
-  "main": "tagalert.js",
+  "version": "2.3.0",
+  "description": "Telegram bot that notifies users when they are tagged in groups.",
+  "main": "./src/main.js",
   "scripts": {
+    "start": "node src/main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -19,9 +20,10 @@
   "bugs": {
     "url": "https://github.com/Pitasi/TagAlertBot/issues"
   },
-  "homepage": "https://github.com/Pitasi/TagAlertBot#readme",
+  "homepage": "http://tagalert.pitasi.space/",
   "dependencies": {
     "node-telegram-bot-api": "^0.25.0",
-    "sqlite3": "^3.1.8"
+    "pg": "^6.1.5",
+    "pg-pool": "^1.7.1"
   }
 }
