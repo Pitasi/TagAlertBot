@@ -24,13 +24,15 @@ module.exports = {
                           '\u2709\ufe0f  %s',
     'options':            'From group: <b>%s</b>\nAvailable operations:',
     'retrieve':           'Find the message',
-    'retrieve_group':     'Here is your message, %s.',
+    'retrieve_group':     'Here is your message, %s.\n\n#u%s',
     'retrieve_success':   'Done!\nNow check the group of the message.',
+    'retrieve_hashtag':   'Or click this! -> #u%s',
     'no_username':        'Sorry.\nYou need to set an username from Telegram\'s settings before using me.',
     'error':              'Sorry.\nSomething went wrong.',
     'flooding':           'Too many requests! Try again in a few minutes.',
     'settings':           'Admin Control Panel',
     'admin_settings':     'Enable/disable #admin',
     'everyone_settings':  'Enable/disable #everyone',
-    'settings_updated':   '%s is now %s.'
+    'settings_updated':   '%s is now %s.',
+    'done':               'Done! (delete this)'
 }

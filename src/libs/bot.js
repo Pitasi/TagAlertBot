@@ -38,22 +38,36 @@ bot.on('callback_query', (call) => {
           })
         })
         break
+
       default:
         let splitted = call.data.split('_')
-        if (splitted[0] === '/retrieve') {
-          let messageId = splitted[1]
-          let groupId = splitted[2]
-          bot.sendMessage(
-            -parseInt(groupId),
-            util.format(replies.retrieve_group, call.from.username?'@'+call.from.username:call.from.first_name),
-            { reply_to_message_id: parseInt(messageId) }
-          ).then((m) => {
-            setTimeout(() => {
-              bot.deleteMessage(m.message_id, m.chat.id)
-            }, 6000)
-          })
+        switch (splitted[0]) {
+          case '/retrieve':
+            let messageId = splitted[1]
+            let groupId = splitted[2]
+            bot.sendMessage(
+              -parseInt(groupId),
+              util.format(replies.retrieve_group, call.from.username?'@'+call.from.username:call.from.first_name, call.from.id),
+              {
+                reply_to_message_id: parseInt(messageId),
+                reply_markup: {inline_keyboard: [[{text: replies.done, callback_data: `/delete_${call.from.id}`}]]}
+              }
+            ).then((m) => {
+              if (config.msg_timeout < 1) return;
+              setTimeout(() => {
+                bot.deleteMessage(m.message_id, m.chat.id).then(()=>{}).catch(()=>{})
+              }, config.msg_timeout * 1000)
+            })
+            bot.sendMessage(
+              call.from.id,
+              replies.retrieve_success + '\n\n' + util.format(replies.retrieve_hashtag, call.from.id),
+              { reply_to_message_id: call.message.message_id }
+            )
+            bot.answerCallbackQuery(call.id, replies.retrieve_success, false)
+            break
 
-          bot.answerCallbackQuery(call.id, replies.retrieve_success, true)
+          case '/delete':
+            if (call.from.id === parseInt(splitted[1])) bot.deleteMessage(call.message.message_id, call.message.chat.id)
         }
         break
     }
@@ -76,8 +90,14 @@ bot.onText(/\/start/, (msg) => {
 
 bot.onText(/^\/info$|^\/info@TagAlertBot$/gi, (msg) => {
   if (!af.isFlooding(msg.from.id)) {
-    if (msg.chat.type !== 'private')
-      bot.sendMessage(msg.chat.id, replies.start_group)
+    if (msg.chat.type !== 'private') {
+      bot.sendMessage(msg.chat.id, replies.start_group).then((m) => {
+        if (config.msg_timeout < 1) return
+        setTimeout(() => {
+          bot.deleteMessage(m.message_id, m.chat.id)
+        }, config.msg_timeout * 1000)
+      })
+    }
     else
       bot.sendMessage(msg.chat.id, replies.start_private, {parse_mode: 'HTML'})
   }
