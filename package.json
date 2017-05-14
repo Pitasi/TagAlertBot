@@ -1,6 +1,6 @@
 {
   "name": "tagalertbot",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "Telegram bot that notifies users when they are tagged in groups.",
   "main": "./src/main.js",
   "scripts": {
