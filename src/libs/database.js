@@ -13,6 +13,7 @@ const pool = new pg.Pool(config.database)
 pool.query('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username VARCHAR(256), UNIQUE (id, username))')
 pool.query('CREATE TABLE IF NOT EXISTS groups (groupId INTEGER, userId INTEGER, PRIMARY KEY (groupId, userId))')
 pool.query('CREATE TABLE IF NOT EXISTS groupSettings (groupId INTEGER, everyone INTEGER, admin INTEGER, PRIMARY KEY (groupId))')
+pool.query('CREATE TABLE IF NOT EXISTS actionlog (action VARCHAR(30000) NOT NULL, request VARCHAR(30000), response VARCHAR(30000), time TIMESTAMP DEFAULT current_timestamp)')
 
 /* FUNCTIONS */
 function removeGroup(groupId) {
@@ -43,7 +44,9 @@ function addUser(username, userId, chatId) {
 
 function notifyUser(bot, user, msg, silent) {
   let notify = (userId) => {
-    bot.getChatMember(msg.chat.id, userId).then((res) => {
+    bot.getChatMember(msg.chat.id, userId)
+    .then((res) => {
+      log.getChatMember({user: user}, res)
       if (res.status == 'left' || res.status == 'kicked') return
       // User is inside in the group
       var from = util.format('%s %s %s',
@@ -71,6 +74,9 @@ function notifyUser(bot, user, msg, silent) {
                          reply_markup: btn,
 			 disable_notification: silent})
       }
+    })
+    .catch((err) => {
+      log.getChatMember({user: user}, err)
     })
   }
 
@@ -138,6 +144,10 @@ function getSetting(setting, chatId, callback) {
   })
 }
 
+function logAction(action, request, response) {
+  pool.query("INSERT INTO actionlog (action, request, response) VALUES ($1,$2,$3)", [action, request, response])
+}
+
 module.exports = {
   removeGroup: removeGroup,
   removeUserFromGroup: removeUserFromGroup,
@@ -145,5 +155,6 @@ module.exports = {
   notifyUser: notifyUser,
   notifyEveryone: notifyEveryone,
   updateSettings: updateSettings,
-  getSetting: getSetting
+  getSetting: getSetting,
+  logAction: logAction
 }
