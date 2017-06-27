@@ -5,7 +5,6 @@
 /* IMPORTS */
 const util = require('util')
 const replies = require('./replies')
-const log = require('./log.js')
 const config = require('../../config.js')
 const pg = require('pg')
 const pool = new pg.Pool(config.database)
@@ -47,7 +46,7 @@ function notifyUser(bot, user, msg, silent) {
   let notify = (userId) => {
     bot.getChatMember(msg.chat.id, userId)
     .then((res) => {
-      log.getChatMember({user: user}, res)
+      db.logAction('getChatMember', {user: user}, res)
       if (res.status == 'left' || res.status == 'kicked') return
       // User is inside in the group
       var from = util.format('%s %s %s',
