@@ -76,7 +76,7 @@ function notifyUser(bot, user, msg, silent) {
       }
     })
     .catch((err) => {
-      log.getChatMember({user: user}, err)
+      db.logAction('getChatMember', {user: user}, err)
     })
   }
 
