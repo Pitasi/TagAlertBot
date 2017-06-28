@@ -46,7 +46,7 @@ function notifyUser(bot, user, msg, silent) {
   let notify = (userId) => {
     bot.getChatMember(msg.chat.id, userId)
     .then((res) => {
-      db.logAction('getChatMember', {user: user}, res)
+      logAction('getChatMember', {user: user}, res)
       if (res.status == 'left' || res.status == 'kicked') return
       // User is inside in the group
       var from = util.format('%s %s %s',
@@ -76,7 +76,7 @@ function notifyUser(bot, user, msg, silent) {
       }
     })
     .catch((err) => {
-      db.logAction('getChatMember', {user: user}, err)
+      logAction('getChatMember', {user: user}, err)
     })
   }
 
