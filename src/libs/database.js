@@ -17,7 +17,7 @@ pool.query('CREATE TABLE IF NOT EXISTS actionlog (action VARCHAR(30000) NOT NULL
 
 /* FUNCTIONS */
 function removeGroup(groupId) {
-  pool.query("DELETE FROM groups WHERE groupId=$1::bigint", [groupId], function (err) {
+  pool.query("DELETE FROM groups WHERE groupId=$1", [groupId], function (err) {
     if (err) return console.error(err)
   })
 }
