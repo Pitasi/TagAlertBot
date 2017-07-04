@@ -44,7 +44,7 @@ function addUser(username, userId, chatId) {
 
 function notifyUser(bot, user, msg, silent) {
   let notify = (userId) => {
-    bot.getChatMember(msg.chat.id, userId)
+    bot.cachedGetChatMember(msg.chat.id, userId)
     .then((res) => {
       logAction('getChatMember', {user: user}, res)
       if (res.status == 'left' || res.status == 'kicked') return

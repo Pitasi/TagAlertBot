@@ -22,6 +22,7 @@
   },
   "homepage": "http://tagalert.pitasi.space/",
   "dependencies": {
+    "memoizee": "^0.4.5",
     "node-telegram-bot-api": "^0.25.0",
     "pg": "^6.1.5",
     "pg-pool": "^1.7.1"

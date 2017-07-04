@@ -6,6 +6,7 @@ const config = require('../../config.js')
 const AntiFlood = require('./antiflood.js')
 const af = new AntiFlood()
 const TelegramBot = require('node-telegram-bot-api')
+const memoize = require('memoizee')
 const db = require('./database.js')
 const bot = new TelegramBot(config.token, {polling: true})
 // Send a message to the admin when bot starts
@@ -21,6 +22,7 @@ bot.deleteMessage = function (messageId, chatId, form = {}) {
   form.message_id = messageId;
   return this._request('deleteMessage', { form });
 }
+bot.cachedGetChatMembers = memoize(bot.getChatMember, { promise: true, maxAge: 24*60*60*1000 })
 
 bot.on('callback_query', (call) => {
   if (!af.isFlooding(call.from.id)) {
@@ -129,8 +131,10 @@ bot.on('message', (msg) => {
     let userId = msg.left_chat_member.id
     if (userId == bot.myId)
       db.removeGroup(msg.chat.id)
-    else
+    else {
       db.removeUserFromGroup(userId, msg.chat.id)
+      bot.cachedGetChatMember.delete(msg.chat.id, msg.from.id) // ensure we remove the cache for this user
+    }
     return
   }
 
