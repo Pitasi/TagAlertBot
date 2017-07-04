@@ -22,7 +22,7 @@ bot.deleteMessage = function (messageId, chatId, form = {}) {
   form.message_id = messageId;
   return this._request('deleteMessage', { form });
 }
-bot.cachedGetChatMembers = memoize(bot.getChatMember, { promise: true, maxAge: 24*60*60*1000 })
+bot.cachedGetChatMember = memoize(bot.getChatMember, { promise: true, maxAge: 24*60*60*1000 })
 
 bot.on('callback_query', (call) => {
   if (!af.isFlooding(call.from.id)) {
