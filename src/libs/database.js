@@ -42,6 +42,8 @@ function addUser(username, userId, chatId) {
     pool.query("INSERT INTO groups VALUES ($1, $2)", [chatId, userId], ()=>{})
 }
 
+function sanitize(str) { return str.replace('<', '\\<').replace('>', '\\/') }
+
 function notifyUser(bot, user, msg, silent) {
   let notify = (userId) => {
     bot.cachedGetChatMember(msg.chat.id, userId)
@@ -61,13 +63,13 @@ function notifyUser(bot, user, msg, silent) {
         btn.inline_keyboard[0][0].callback_data = `/retrieve_${msg.message_id}_${-msg.chat.id}`
 
       if (msg.photo) {
-        let final_text = util.format(replies.main_caption, from, msg.chat.title, msg.caption)
+        let final_text = util.format(replies.main_caption, sanitize(from), sanitize(msg.chat.title), sanitize(msg.caption))
         const file_id = msg.photo[0].file_id
         if (final_text.length > 200) final_text = final_text.substr(0, 197) + '...'
         bot.sendPhoto(userId, file_id, {caption: final_text, reply_markup: btn})
       }
       else {
-        var final_text = util.format(replies.main_text, from, msg.chat.title, msg.text)
+        let final_text = util.format(replies.main_text, sanitize(from), sanitize(msg.chat.title), sanitize(msg.text))
         bot.sendMessage(userId,
                         final_text,
                         {parse_mode: 'HTML',
