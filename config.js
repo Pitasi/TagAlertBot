@@ -5,7 +5,7 @@
 /* OPTIONAL PARAMETERS    */
 /* - ADMIN_ID             */
 /* - ANTIFLOOD_TOLERANCE  */
-/* - WEBHOOK_URL          */
+/* - WEBHOOK_URL          <-- currently disabled! */  
 /* - WEBHOOK_PORT         */
 /* - MSG_TIMEOUT          */
 /*    (0 to disable)      */

@@ -13,10 +13,11 @@ const pool = new pg.Pool(config.database)
 pool.query('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username VARCHAR(256), UNIQUE (id, username))')
 pool.query('CREATE TABLE IF NOT EXISTS groups (groupId INTEGER, userId INTEGER, PRIMARY KEY (groupId, userId))')
 pool.query('CREATE TABLE IF NOT EXISTS groupSettings (groupId INTEGER, everyone INTEGER, admin INTEGER, PRIMARY KEY (groupId))')
+pool.query('CREATE TABLE IF NOT EXISTS actionlog (action VARCHAR(30000) NOT NULL, request VARCHAR(30000), response VARCHAR(30000), time TIMESTAMP DEFAULT current_timestamp)')
 
 /* FUNCTIONS */
 function removeGroup(groupId) {
-  pool.query("DELETE FROM groups WHERE groupId=$1::bigint", [groupId], function (err) {
+  pool.query("DELETE FROM groups WHERE groupId=$1", [groupId], function (err) {
     if (err) return console.error(err)
   })
 }
@@ -41,9 +42,13 @@ function addUser(username, userId, chatId) {
     pool.query("INSERT INTO groups VALUES ($1, $2)", [chatId, userId], ()=>{})
 }
 
+function sanitize(str) { return str.replace('<', '\\<').replace('>', '\\/') }
+
 function notifyUser(bot, user, msg, silent) {
   let notify = (userId) => {
-    bot.getChatMember(msg.chat.id, userId).then((res) => {
+    bot.cachedGetChatMember(msg.chat.id, userId)
+    .then((res) => {
+      logAction('getChatMember', {user: user}, res)
       if (res.status == 'left' || res.status == 'kicked') return
       // User is inside in the group
       var from = util.format('%s %s %s',
@@ -58,19 +63,22 @@ function notifyUser(bot, user, msg, silent) {
         btn.inline_keyboard[0][0].callback_data = `/retrieve_${msg.message_id}_${-msg.chat.id}`
 
       if (msg.photo) {
-        let final_text = util.format(replies.main_caption, from, msg.chat.title, msg.caption)
+        let final_text = util.format(replies.main_caption, sanitize(from), sanitize(msg.chat.title), sanitize(msg.caption))
         const file_id = msg.photo[0].file_id
         if (final_text.length > 200) final_text = final_text.substr(0, 197) + '...'
         bot.sendPhoto(userId, file_id, {caption: final_text, reply_markup: btn})
       }
       else {
-        var final_text = util.format(replies.main_text, from, msg.chat.title, msg.text)
+        let final_text = util.format(replies.main_text, sanitize(from), sanitize(msg.chat.title), sanitize(msg.text))
         bot.sendMessage(userId,
                         final_text,
                         {parse_mode: 'HTML',
                          reply_markup: btn,
 			 disable_notification: silent})
       }
+    })
+    .catch((err) => {
+      logAction('getChatMember', {user: user}, err)
     })
   }
 
@@ -138,6 +146,10 @@ function getSetting(setting, chatId, callback) {
   })
 }
 
+function logAction(action, request, response) {
+  pool.query("INSERT INTO actionlog (action, request, response) VALUES ($1,$2,$3)", [action, request, response])
+}
+
 module.exports = {
   removeGroup: removeGroup,
   removeUserFromGroup: removeUserFromGroup,
@@ -145,5 +157,6 @@ module.exports = {
   notifyUser: notifyUser,
   notifyEveryone: notifyEveryone,
   updateSettings: updateSettings,
-  getSetting: getSetting
+  getSetting: getSetting,
+  logAction: logAction
 }
