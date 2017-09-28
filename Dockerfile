@@ -1,4 +1,4 @@
-FROM library/node:6.10.0-alpine
+FROM library/node:6.11-alpine
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
