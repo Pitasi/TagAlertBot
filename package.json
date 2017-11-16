@@ -1,11 +1,13 @@
 {
   "name": "tagalertbot",
-  "version": "2.3.2",
+  "version": "3.0.0",
   "description": "Telegram bot that notifies users when they are tagged in groups.",
   "main": "./src/main.js",
   "scripts": {
-    "start": "node src/main.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node dist/main.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "gulp build",
+    "dev": "npm run build && npm start"
   },
   "repository": {
     "type": "git",
@@ -22,9 +24,23 @@
   },
   "homepage": "http://tagalert.pitasi.space/",
   "dependencies": {
+    "inversify": "^4.5.1",
     "memoizee": "^0.4.5",
-    "node-telegram-bot-api": "^0.25.0",
     "pg": "^6.1.5",
-    "pg-pool": "^1.7.1"
+    "pg-pool": "^1.7.1",
+    "postgrator": "^2.10.3",
+    "reflect-metadata": "^0.1.10",
+    "telegraf": "^3.15.3",
+    "winston": "^2.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^8.0.53",
+    "@types/winston": "^2.3.7",
+    "chai": "^4.1.2",
+    "del": "^3.0.0",
+    "gulp": "^3.9.1",
+    "gulp-typescript": "^3.2.3",
+    "mocha": "^4.0.1",
+    "typescript": "^2.6.1"
   }
 }
