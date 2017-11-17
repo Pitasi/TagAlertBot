@@ -16,11 +16,24 @@ export class TagAlertBot implements IBot {
     }
 
     public async start() {
-        logger.info("starting TagAlertBot");
-        await this.databaseService.applyAllMigrations();
-        const old = await this.userRepository.save(new User(24254235, "test"));
-        const user = await this.userRepository.findOne("test");
-        user.ifPresent((u) => logger.info(u.toString()));
+
+        try {
+            logger.info("starting TagAlertBot");
+            await this.databaseService.applyAllMigrations();
+            const old = await this.userRepository.save(new User(9999999, "test"));
+            const user = await this.userRepository.findOne("test");
+            user.ifPresent((u) => logger.info(u.toString()));
+            const users = await this.userRepository.findAll();
+            logger.info("Printing users");
+            logger.info(users.length + "");
+            users.forEach((u) => logger.info(u.toString()));
+            user.ifPresent(async (u) => {
+                const res = await this.userRepository.deleteEntry(u);
+                logger.info("Deleted: %s", res);
+            });
+        } catch (e) {
+            logger.error(e);
+        }
     }
 }
 

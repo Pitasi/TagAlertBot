@@ -1,7 +1,6 @@
 import {inject, injectable} from "inversify";
 import Optional from "typescript-optional";
 import {isNullOrUndefined, isNumber} from "util";
-import {logger} from "../logger";
 import {User} from "../model/user";
 import {IModelMapper, IUserRepository} from "../types/interfaces";
 import {TYPES} from "../types/types";
@@ -38,10 +37,10 @@ export class DefaultUserRepository implements IUserRepository {
         const client = await this.clientSupplier();
         try {
             const res = await client.query(this.qFindAll);
-            await client.release();
+            client.end();
             return await this.modelMapper.mapUsers(res.rows);
         } catch (e) {
-            await client.release();
+            client.end();
             throw e;
         }
     }
@@ -63,11 +62,11 @@ export class DefaultUserRepository implements IUserRepository {
                     await client.query(this.qSave, params);
                 } catch (_) {
                     await client.query(this.qUpdateUsername, params);
-                    await client.release();
+                    client.end();
                     return new User(user.getId(), user.getUsername());
                 }
             } catch (e) {
-                await client.release();
+                client.end();
                 throw e;
             }
         }
@@ -79,17 +78,18 @@ export class DefaultUserRepository implements IUserRepository {
         } else {
             const client = await this.clientSupplier();
             try {
-                const res = await client.query(this.findOne(isNumber(user) ? user : user.getId()));
-                if (res.rows.length === 0) {
-                    await client.release();
+                const res = await this.findOne(isNumber(user) ? user : user.getId());
+                if (res.isEmpty) {
+                    client.end();
                     return false;
                 } else {
-                    await client.query(this.qDelete, res.rows[0]);
-                    await client.release();
+                    const data = res.get();
+                    await client.query(this.qDelete, [data.getId(), data.getUsername()]);
+                    client.end();
                     return true;
                 }
             } catch (e) {
-                await client.release();
+                client.end();
                 throw e;
             }
         }
@@ -100,14 +100,14 @@ export class DefaultUserRepository implements IUserRepository {
         try {
             const res = await client.query(query, params);
             if (res.rows.length === 0) {
-                await client.release();
+                client.end();
                 return Optional.empty();
             } else {
-                await client.release();
+                client.end();
                 return Optional.ofNullable(await this.modelMapper.mapUser(res.rows[0]));
             }
         } catch (e) {
-            await client.release();
+            client.end();
             throw e;
         }
     }

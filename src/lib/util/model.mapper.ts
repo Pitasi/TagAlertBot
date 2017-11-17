@@ -15,16 +15,17 @@ export class ModelMapper implements IModelMapper {
         });
     }
 
-    public mapUsers(rows: any[]): Promise<User[]> {
-        return new Promise((resolve, reject) => {
-            const users: User[] = [];
-            for (const row in Object.keys(rows)) {
-                this.mapUser(row)
-                    .then(users.push)
-                    .catch(reject);
+    public async mapUsers(rows: any[]): Promise<User[]> {
+        const users: User[] = [];
+        for (const i in Object.keys(rows)) {
+            try {
+                const user = await this.mapUser(rows[i]);
+                users.push(user);
+            } catch (e) {
+                throw e;
             }
-            resolve(users);
-        });
+        }
+        return users;
     }
 
 }
