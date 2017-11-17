@@ -6,11 +6,10 @@
 //   2016 - made with love                          //
 /****************************************************/
 
-import {TYPES} from "./lib/types/types";
-
 // require('./libs/bot.js');
 import {container} from "./lib/inversify.config";
 import {IBot} from "./lib/types/interfaces";
+import {TYPES} from "./lib/types/types";
 
 const bot = container.get<IBot>(TYPES.Bot);
 bot.start();

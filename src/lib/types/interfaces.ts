@@ -1,11 +1,12 @@
 import Optional from "typescript-optional";
+import {User} from "../model/user";
 
 interface IBot {
     start(): void;
 }
 
 interface IDatabaseService {
-    applyAllMigrations(): void;
+    applyAllMigrations(): Promise<void>;
 }
 
 interface IUserRepository {
@@ -45,7 +46,10 @@ interface IModelMapper {
 
 interface IConnectionParameters {
     host: string;
+    port: number;
     user: string;
+    password: string;
+    database: string;
     max: number;
     idleTimeoutMillis: number;
     connectionTimeoutMillis: number;

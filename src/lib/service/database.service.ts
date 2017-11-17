@@ -19,16 +19,21 @@ class DatabaseServiceImpl implements IDatabaseService {
         });
     }
 
-    public applyAllMigrations(): void {
-        logger.info("running SQL migrations");
-        postgrator.migrate("max", (err: Error, migrations) => {
-            if (err) {
-                logger.error(err.message);
-            } else {
-                logger.info("successfully migrated database schema");
-                logger.debug(migrations);
-            }
-            postgrator.endConnection(() => logger.debug("connection closed"));
+    public applyAllMigrations(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            logger.info("running SQL migrations");
+
+            postgrator.migrate("max", (err: Error, migrations) => {
+                if (err) {
+                    postgrator.endConnection(() => logger.debug("connection closed"));
+                    reject(err);
+                } else {
+                    logger.info("successfully migrated database schema");
+                    logger.debug(migrations);
+                    postgrator.endConnection(() => logger.debug("connection closed"));
+                    resolve();
+                }
+            });
         });
     }
 

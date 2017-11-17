@@ -1,4 +1,5 @@
 import {injectable} from "inversify";
+import {User} from "../model/user";
 import {IModelMapper} from "../types/interfaces";
 
 @injectable()
