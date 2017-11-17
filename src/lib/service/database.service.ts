@@ -1,7 +1,8 @@
 import {injectable} from "inversify";
 import * as postgrator from "postgrator";
 import {logger} from "../logger";
-import * as dbconfig from "./../../../migration.config";
+import {IDatabaseService} from "../types/interfaces";
+import * as dbconfig from "./../../../database.config";
 
 @injectable()
 class DatabaseServiceImpl implements IDatabaseService {

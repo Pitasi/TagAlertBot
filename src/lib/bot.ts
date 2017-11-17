@@ -1,5 +1,6 @@
 import {inject, injectable} from "inversify";
 import {logger} from "./logger";
+import {IBot, IDatabaseService} from "./types/interfaces";
 import {TYPES} from "./types/types";
 
 @injectable()
