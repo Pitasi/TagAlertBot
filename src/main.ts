@@ -6,6 +6,7 @@
 //   2016 - made with love                          //
 /****************************************************/
 
+import "reflect-metadata";
 import {TYPES} from "./lib/types/types";
 
 // require('./libs/bot.js');

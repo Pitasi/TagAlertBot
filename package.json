@@ -25,12 +25,14 @@
   "homepage": "http://tagalert.pitasi.space/",
   "dependencies": {
     "inversify": "^4.5.1",
-    "memoizee": "^0.4.5",
-    "pg": "^6.1.5",
+    "memoizee": "^0.4.11",
+    "monitor": "^0.6.10",
+    "pg": "^6.4.2",
     "pg-pool": "^1.7.1",
-    "postgrator": "^2.10.3",
+    "postgrator": "^3.0.0",
     "reflect-metadata": "^0.1.10",
-    "telegraf": "^3.15.3",
+    "telegraf": "^3.17.3",
+    "typeorm": "^0.1.11",
     "winston": "^2.4.0"
   },
   "devDependencies": {
