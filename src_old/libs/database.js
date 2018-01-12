@@ -5,7 +5,7 @@
 /* IMPORTS */
 const util = require('util')
 const replies = require('./replies')
-const config = require('../../config.js')
+const config = require('../../config.old.js')
 const pg = require('pg')
 const pool = new pg.Pool(config.database)
 

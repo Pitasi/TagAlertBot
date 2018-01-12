@@ -2,7 +2,7 @@ const DEBUG = process.argv[2] == '--dev' || process.env.DEBUG == 'true'
 
 const util = require('util')
 const replies = require('./replies.js')
-const config = require('../../config.js')
+const config = require('../../config.old.js')
 const AntiFlood = require('./antiflood.js')
 const af = new AntiFlood()
 const TelegramBot = require('node-telegram-bot-api')

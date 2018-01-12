@@ -1,10 +1,10 @@
-import {ObjectType, Repository} from "typeorm";
+import {ObjectType, Repository, Entity} from "typeorm";
 
-interface IBot {
+export interface IBot {
     start(): void;
 }
 
-interface IDatabaseService {
+export interface IDatabaseService {
     applyAllMigrations(): Promise<boolean>;
-    getRepository(entity: ObjectType<Entity>): Repository<Entity>;
+    getRepository(entity: ObjectType<any>): Promise<Repository<any>>;
 }

@@ -8,9 +8,8 @@
 
 import "reflect-metadata";
 import {TYPES} from "./lib/types/types";
-
-// require('./libs/bot.js');
 import {container} from "./lib/inversify.config";
+import {IBot} from "./lib/types/interfaces";
 
 const bot = container.get<IBot>(TYPES.Bot);
 bot.start();

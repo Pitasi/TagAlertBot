@@ -13,7 +13,8 @@ gulp.task('build', ['clean'], function () {
     gulp.src([
         "Dockerfile",
         "migration.config.js",
-        "migrations/*"
+        "migrations/*",
+        "config.json"
     ], {base: './'})
         .pipe(gulp.dest("dist"));
 

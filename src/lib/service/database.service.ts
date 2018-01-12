@@ -2,9 +2,10 @@ import {injectable} from "inversify";
 import * as Postgrator from "postgrator";
 import {logger} from "../logger";
 import * as dbconfig from "./../../../migration.config";
-import {Connection, createConnection, ObjectType, Repository} from "typeorm";
+import {Connection, createConnection, ObjectType, Repository, Entity} from "typeorm";
 import {User} from "../entity/user";
 import {Group} from "../entity/group";
+import {IDatabaseService} from "../types/interfaces";
 
 @injectable()
 export class DatabaseServiceImpl implements IDatabaseService {
@@ -60,11 +61,13 @@ export class DatabaseServiceImpl implements IDatabaseService {
 
     }
 
-    public getRepository(entity: ObjectType<Entity>): Promise<Repository<Entity>> {
+    public getRepository(entity: ObjectType<any>): Promise<Repository<any>> {
         return new Promise((resolve, reject) => {
             this.connection.then(connection => {
-                resolve(connection.getRepository(entity));
+                const repository = connection.getRepository(entity);
+                resolve(repository);
             }).catch(reject);
+
         })
         // return this.connection.getRepository(entity);
     }
