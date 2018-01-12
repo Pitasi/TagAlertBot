@@ -66,7 +66,6 @@ class TagAlertBot implements IBot {
 
     private async bootstrap() {
         const token = await this.config.load("bot.token");
-        console.log("Token", token);
         this.bot = new Telegraf(token);
         this.bot.command("test", (ctx) => {
             ctx.reply("Hello, I'm Tagalert 3.0!")
