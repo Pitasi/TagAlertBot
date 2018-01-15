@@ -4,4 +4,5 @@ node_modules/
 *.iml
 dist/
 migration.config.js
-config.json
+src/resources/config.json
+src/resources/database.config.js

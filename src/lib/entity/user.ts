@@ -1,7 +1,7 @@
 import {Entity} from "typeorm/decorator/entity/Entity";
 import {Column, PrimaryColumn} from "typeorm";
 
-@Entity()
+@Entity("users")
 export class User {
     @PrimaryColumn()
     id: number;

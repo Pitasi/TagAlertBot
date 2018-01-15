@@ -1,8 +1,8 @@
 import {injectable} from "inversify";
 import * as Postgrator from "postgrator";
 import {logger} from "../logger";
-import * as dbconfig from "./../../../migration.config";
-import {Connection, createConnection, ObjectType, Repository, Entity} from "typeorm";
+import * as dbconfig from "../../resources/database.config.js";
+import {Connection, createConnection, ObjectType, Repository} from "typeorm";
 import {User} from "../entity/user";
 import {Group} from "../entity/group";
 import {IDatabaseService} from "../types/interfaces";
@@ -13,7 +13,7 @@ export class DatabaseServiceImpl implements IDatabaseService {
     private connection: Promise<Connection>;
 
     public constructor() {
-        /*this.postgrator = new Postgrator({
+        const postgratorOpts = {
             migrationDirectory: dbconfig.migrations,
             schemaTable: "schema_version",
             driver: "pg",
@@ -22,14 +22,13 @@ export class DatabaseServiceImpl implements IDatabaseService {
             database: dbconfig.database,
             username: dbconfig.username,
             password: dbconfig.password,
-        });
-        logger.info("HEI");
-        logger.info(dbconfig);
-        this.postgrator.runQuery("SELECT 1").then(r => console.log("HEI2", r)).catch(e => {});
+        };
+
+        this.postgrator = new Postgrator(postgratorOpts);
         this.postgrator.on('validation-started', migration => logger.info(migration));
         this.postgrator.on('validation-finished', migration => logger.info(migration));
         this.postgrator.on('migration-started', migration => logger.info(migration));
-        this.postgrator.on('migration-finished', migration => logger.info(migration));*/
+        this.postgrator.on('migration-finished', migration => logger.info(migration));
 
         this.connection = createConnection({
             type: "postgres",
@@ -42,7 +41,7 @@ export class DatabaseServiceImpl implements IDatabaseService {
                 User,
                 Group
             ],
-            synchronize: true,
+            synchronize: false,
             logging: false
         });
     }
@@ -54,8 +53,8 @@ export class DatabaseServiceImpl implements IDatabaseService {
             logger.debug(migrations);
             return true;
         } catch (e) {
-            logger.error(e.message);
-            logger.error(e.appliedMigrations);
+            logger.debug(e);
+            logger.error(`${e.message}\n${e.appliedMigrations}`);
             return false
         }
 

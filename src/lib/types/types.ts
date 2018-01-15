@@ -1,8 +1,7 @@
 const TYPES = {
     Bot: Symbol("IBot"),
     DatabaseService: Symbol("IDatabaseService"),
-    UserRepository: Symbol("IUserRepository"),
-    ModelMapper: Symbol("IModelMapper"),
+    AntifloodService: Symbol("IAntifloodService")
 };
 
 export {TYPES};

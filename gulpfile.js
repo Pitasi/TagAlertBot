@@ -9,7 +9,7 @@ gulp.task('clean', function () {
     return del('dist');
 });
 
-gulp.task('build', ['clean'], function () {
+gulp.task('copy-resources', ['clean'], function () {
     gulp.src([
         "Dockerfile",
         "migration.config.js",
@@ -17,7 +17,13 @@ gulp.task('build', ['clean'], function () {
         "config.json"
     ], {base: './'})
         .pipe(gulp.dest("dist"));
+    gulp.src([
+        "src/resources/*"
+    ], {base: './src/resources'})
+        .pipe(gulp.dest("dist/resources"));
+});
 
+gulp.task('build', ['copy-resources'], function () {
     return tsProject.src()
         .pipe(tsProject())
         .js.pipe(gulp.dest("dist"));
