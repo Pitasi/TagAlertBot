@@ -14,6 +14,9 @@ import {
     ObjectProvider
 } from "./util/config.util";
 import * as path from "path";
+import {User} from "./entity/user";
+import {Repository} from "typeorm";
+import Optional from "typescript-optional";
 
 // import * as Extra from "telegraf/extra";
 
@@ -46,10 +49,9 @@ class TagAlertBot implements IBot {
                 logger.error("Something went wrong applying migrations.");
                 process.exit(1);
             }
+            const userRepository: Repository<User> = await this.databaseService.getRepository(User);
 
-            await this.bootstrap();
-            // const userRepository: Repository<User> = await this.databaseService.getRepository(User);
-
+            await this.bootstrap({userRepository: userRepository});
 
             logger.info("starting TagAlertBot");
             this.bot.startPolling();
@@ -58,11 +60,12 @@ class TagAlertBot implements IBot {
         }
     }
 
-    private async bootstrap() {
+    private async bootstrap(params: { userRepository: Repository<User> }) {
         const token = await this.config.load("bot.token");
         this.bot = new Telegraf(token);
         await this.registerSelf();
         await this.registerCommands();
+        await this.registerOnMessage(params.userRepository);
 
     }
 
@@ -97,7 +100,7 @@ class TagAlertBot implements IBot {
             if (!this.antifloodService.isFlooding(message.from.id)) {
                 const sent = await ctx.reply(Replies.add_to_group);
                 const timeout = await this.config.load("bot.msg_timeout");
-                if (timeout > 1 ) {
+                if (timeout > 1) {
                     setTimeout(() => {
                         ctx.tg.deleteMessage(ctx.chat.id, sent.message_id)
                     }, timeout * 1000);
@@ -105,6 +108,113 @@ class TagAlertBot implements IBot {
             }
         });
     }
+
+    private async registerOnMessage(userRepository: Repository<User>) {
+        this.bot.on('message', async (ctx) => {
+            const message = ctx.message;
+            const from = message.from;
+            console.dir(from);
+            if (from.is_bot) return;
+            const newUser = new User(
+                from.id,
+                from.username,
+                from.first_name,
+                from.last_name,
+                from.language_code
+            );
+            await userRepository.save(newUser);
+
+        })
+    }
+
+    /*db.addUser(msg.from.username, msg.from.id, msg.chat.id)
+
+    // A user left the chat
+    if (msg.left_chat_member) {
+    let userId = msg.left_chat_member.id
+    if (userId == bot.myId)
+    db.removeGroup(msg.chat.id)
+    else {
+    db.removeUserFromGroup(userId, msg.chat.id)
+    bot.cachedGetChatMember.delete(msg.chat.id, msg.from.id) // ensure we remove the cache for this user
+}
+return
+}
+
+if (
+    (msg.chat.type !== 'group' && msg.chat.type !== 'supergroup') ||
+    (msg.forward_from && msg.forward_from.id == bot.myId)
+) return
+
+let toBeNotified = new Set() // avoid duplicate notifications if tagged twice
+
+// Text messages
+if (msg.text && msg.entities) {
+    // Extract (hash)tags from message text
+    let extract = (entity) => {
+        return msg.text
+            .substring(entity.offset + 1, entity.offset + entity.length)
+            .toLowerCase()
+    }
+
+    for (let i in msg.entities) {
+        let entity = msg.entities[i]
+
+        // Tags
+        if (entity.type === 'mention') {
+            let username = extract(entity)
+            toBeNotified.add(username)
+        }
+
+        // Hashtags
+        else if (entity.type === 'hashtag') {
+            let hashtag = extract(entity)
+            if (hashtag === 'everyone') {
+                db.getSetting('everyone', msg.chat.id, () => {
+                    db.notifyEveryone(bot, msg.from.id, msg.chat.id, msg)
+                })
+            }
+            else if (hashtag === 'admin') {
+                db.getSetting('admin', msg.chat.id, () => {
+                    bot.getChatAdministrators(msg.chat.id).then((admins) => {
+                        admins.forEach((admin) => {
+                            db.notifyUser(bot, admin.user.id, msg, false)
+                        })
+                    })
+                })
+            }
+        }
+
+        // Users without username
+        else if (entity.user)
+            db.notifyUser(bot, entity.user.id, msg, false)
+    }
+}
+
+// Images/media captions
+else if (msg.caption) {
+    let matched = msg.caption.match(/@[a-z0-9]*!/gi)
+    for (let i in matched) {
+        let username = matched[i].trim().substring(1).toLowerCase()
+        toBeNotified.add(username)
+    }
+}
+
+else return
+
+// helpful to check if user is tagging himself
+let isEqual = (u1, u2) => {
+    if (u1 && u2) return u1.toLowerCase() === u2.toLowerCase()
+    else return false
+}
+
+// let's really send notifications
+toBeNotified.forEach((username) => {
+    // check if user is tagging himself
+    if (!isEqual(msg.from.username, username) || DEBUG) {
+        db.notifyUser(bot, username, msg, false)
+    }
+})*/
 
 }
 
