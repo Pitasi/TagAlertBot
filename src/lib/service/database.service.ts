@@ -25,10 +25,10 @@ export class DatabaseServiceImpl implements IDatabaseService {
         };
 
         this.postgrator = new Postgrator(postgratorOpts);
-        this.postgrator.on('validation-started', migration => logger.info(migration));
-        this.postgrator.on('validation-finished', migration => logger.info(migration));
-        this.postgrator.on('migration-started', migration => logger.info(migration));
-        this.postgrator.on('migration-finished', migration => logger.info(migration));
+        this.postgrator.on('validation-started', migration => logger.info("validating migration", { version: migration.version, name: migration.name }));
+        this.postgrator.on('validation-finished', migration => logger.info("validated migration", { version: migration.version, name: migration.name }));
+        this.postgrator.on('migration-started', migration => logger.info("starting migration", { version: migration.version, name: migration.name }));
+        this.postgrator.on('migration-finished', migration => logger.info("finishing migration", { version: migration.version, name: migration.name }));
         this.connection = createConnection({
             type: "postgres",
             host: dbconfig.host,
@@ -48,8 +48,7 @@ export class DatabaseServiceImpl implements IDatabaseService {
     public async applyAllMigrations(): Promise<boolean> {
         try {
             logger.info("running SQL migrations");
-            const migrations = await this.postgrator.migrate();
-            logger.debug(migrations);
+            await this.postgrator.migrate();
             return true;
         } catch (e) {
             logger.debug(e);

@@ -29,7 +29,7 @@ export class Group {
         this.title = title;
         this.type = type;
         this.allMembersAreAdmin = allMembersAreAdmin;
-        this.users = users;
+        this.users = users || [];
     }
 }
 
