@@ -91,7 +91,9 @@ class TagAlertBot implements IBot {
         this.bot.command('start', async (ctx) => {
             const message: Message = ctx.message;
             console.log("Message", message);
-            if (message.chat.type !== 'private') return;
+            if (message.chat.type !== 'private') {
+
+            }
 
             if (!this.antifloodService.isFlooding(message.from.id)) {
                 ctx.replyWithHTML(this.strings.en.start_private, Extra.HTML().markup((m) =>
@@ -120,7 +122,7 @@ class TagAlertBot implements IBot {
         this.bot.on('message', async (ctx) => {
             const message: Message = ctx.message;
             const from = message.from;
-            // console.dir(from);
+            console.dir(message.chat);
             if (from.is_bot) return;
             const newUser = new User(
                 from.id,

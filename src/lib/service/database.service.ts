@@ -29,7 +29,6 @@ export class DatabaseServiceImpl implements IDatabaseService {
         this.postgrator.on('validation-finished', migration => logger.info(migration));
         this.postgrator.on('migration-started', migration => logger.info(migration));
         this.postgrator.on('migration-finished', migration => logger.info(migration));
-
         this.connection = createConnection({
             type: "postgres",
             host: dbconfig.host,

@@ -1,5 +1,6 @@
 import {Entity} from "typeorm/decorator/entity/Entity";
-import {Column, PrimaryColumn} from "typeorm";
+import {Column, ManyToMany, PrimaryColumn} from "typeorm";
+import {Group} from "./group";
 
 @Entity("users")
 export class User {
@@ -17,6 +18,9 @@ export class User {
 
     @Column()
     language: string;
+
+    @ManyToMany(type => Group, group => group.users)
+    groups: Group[];
 
     constructor(id: number, username: string,  firstName?: string, lastName?: string, language?: string) {
         this.id = id;
