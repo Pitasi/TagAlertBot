@@ -1,0 +1,40 @@
+en:
+  booting:  '@%s is starting now.'
+  add_to_group:  Add me to a group!
+  start_group:  Contact me in private for more infos and enabling me.
+  start_private: |
+                  Hello.
+                  <b>You are now enabled</b> to receive notifications from me, just add @TagAlertBot in your groups and I'll start working.
+                  When you'll get tagged I'll send a message to you.
+
+                  Source code and infos: http://tagalert.pitasi.space/
+                   - a bot by @Zaphodias, enhanced by @GamesCodex.
+  main_text: |
+              <b>[ Incoming Message ]</b>
+              <b>[ FROM ]</b>
+              \uD83D\uDC64
+                %s  <b>[ GROUP ]</b>
+              \uD83D\uDC65
+                %s  <b>[ TEXT ]</b>
+              \u2709\ufe0f  %s
+  main_caption: |
+                [ Incoming Message ]
+                [ FROM ]
+                \uD83D\uDC64
+                  %s  [ GROUP ]
+                \uD83D\uDC65
+                  %s  [ TEXT ]
+                \u2709\ufe0f  %s
+  options:            'From group: <b>%s</b>  Available operations:'
+  retrieve:           Find the message
+  retrieve_group:     'Here is your message, %s.    \#u%s'
+  retrieve_success:   Done!  Now check the group of the message.
+  retrieve_hashtag:   'Or click this! -> \#u%s'
+  no_username:        Sorry. You need to set an username from Telegram's settings before using me.
+  error:              Sorry. Something went wrong.
+  flooding:           Too many requests! Try again in a few minutes.
+  settings:           Admin Control Panel
+  admin_settings:     Enable/disable \#admin
+  everyone_settings:  Enable/disable \#everyone
+  settings_updated:   '%s is now %s.'
+  done:               Done! (delete this)

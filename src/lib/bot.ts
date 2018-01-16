@@ -2,7 +2,6 @@
 import {inject, injectable} from "inversify";
 import {logger} from "./logger";
 import {TYPES} from "./types/types";
-import Replies from '../resources/replies.js'
 import * as Telegraf from 'telegraf';
 import * as Extra from "telegraf/extra.js"
 import {IAntifloodService, IBot, IDatabaseService} from "./types/interfaces";
@@ -11,14 +10,13 @@ import {
     EnvironmentVariableProvider,
     FileProvider,
     loadConfig,
+    loadYaml,
     ObjectProvider
 } from "./util/config.util";
 import * as path from "path";
 import {User} from "./entity/user";
 import {Repository} from "typeorm";
-import Optional from "typescript-optional";
-
-// import * as Extra from "telegraf/extra";
+import {Group} from "./entity/group";
 
 @injectable()
 class TagAlertBot implements IBot {
@@ -26,6 +24,7 @@ class TagAlertBot implements IBot {
     private antifloodService: IAntifloodService;
     private bot: any;
     private config: ConfigurationLoader;
+    private strings: any;
 
     public constructor(@inject(TYPES.DatabaseService) databaseService: IDatabaseService,
                        @inject(TYPES.AntifloodService) antifloodService: IAntifloodService) {
@@ -37,7 +36,9 @@ class TagAlertBot implements IBot {
                 bot: {
                     msg_timeout: 25,
                 }
-            }))
+            }));
+
+        this.strings = loadYaml(path.resolve(__dirname, "..", "resources", "replies.yml"))
     }
 
     public async start() {
@@ -50,8 +51,9 @@ class TagAlertBot implements IBot {
                 process.exit(1);
             }
             const userRepository: Repository<User> = await this.databaseService.getRepository(User);
+            const groupRepository: Repository<Group> = await this.databaseService.getRepository(Group);
 
-            await this.bootstrap({userRepository: userRepository});
+            await this.bootstrap({userRepository: userRepository, groupRepository: groupRepository});
 
             logger.info("starting TagAlertBot");
             this.bot.startPolling();
@@ -60,19 +62,23 @@ class TagAlertBot implements IBot {
         }
     }
 
-    private async bootstrap(params: { userRepository: Repository<User> }) {
+    private async bootstrap(params: { userRepository: Repository<User>, groupRepository: Repository<Group>}) {
         const token = await this.config.load("bot.token");
         this.bot = new Telegraf(token);
         await this.registerSelf();
         await this.registerCommands();
-        await this.registerOnMessage(params.userRepository);
+        await this.registerOnMessage(params.userRepository, params.groupRepository);
 
     }
 
     private async registerSelf() {
         try {
             const botInfo = await this.bot.telegram.getMe();
+            console.dir(botInfo);
+            console.log("================");
+            this.bot.options.id = botInfo.id;
             this.bot.options.username = botInfo.username;
+            console.dir(this.bot.options);
         } catch (e) {
             throw e;
         }
@@ -83,13 +89,13 @@ class TagAlertBot implements IBot {
         /* Start Command*/
         this.bot.command('start', async (ctx) => {
             const message = ctx.message;
-            console.dir(message);
+            console.log("Message", message);
             if (message.chat.type !== 'private') return;
 
             if (!this.antifloodService.isFlooding(message.from.id)) {
-                ctx.replyWithHTML(Replies.start_private, Extra.HTML().markup((m) =>
+                ctx.replyWithHTML(this.strings.en.start_private, Extra.HTML().markup((m) =>
                     m.inlineKeyboard([
-                        m.urlButton(Replies.add_to_group, 't.me/TagAlertBot?startgroup=true')
+                        m.urlButton(this.strings.en.add_to_group, `t.me/${this.bot.options.username}?startgroup=true`)
                     ])));
             }
         });
@@ -98,7 +104,7 @@ class TagAlertBot implements IBot {
         this.bot.command('info', async (ctx) => {
             const message = ctx.message;
             if (!this.antifloodService.isFlooding(message.from.id)) {
-                const sent = await ctx.reply(Replies.add_to_group);
+                const sent = await ctx.reply(this.strings.en.add_to_group);
                 const timeout = await this.config.load("bot.msg_timeout");
                 if (timeout > 1) {
                     setTimeout(() => {
@@ -109,11 +115,11 @@ class TagAlertBot implements IBot {
         });
     }
 
-    private async registerOnMessage(userRepository: Repository<User>) {
+    private async registerOnMessage(userRepository: Repository<User>, groupRepository: Repository<Group>) {
         this.bot.on('message', async (ctx) => {
             const message = ctx.message;
             const from = message.from;
-            console.dir(from);
+            // console.dir(from);
             if (from.is_bot) return;
             const newUser = new User(
                 from.id,
@@ -123,6 +129,17 @@ class TagAlertBot implements IBot {
                 from.language_code
             );
             await userRepository.save(newUser);
+
+            if (message.left_chat_member) {
+                let userId = message.left_chat_member.id
+                if (userId == this.bot.myId)
+                    groupRepository.deleteById(message.chat.id);
+                else {
+                    // db.removeUserFromGroup(userId, message.chat.id)
+                    this.bot.cachedGetChatMember.delete(message.chat.id, message.from.id) // ensure we remove the cache for this user
+                }
+                return
+            }
 
         })
     }

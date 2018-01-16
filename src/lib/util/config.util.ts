@@ -1,6 +1,6 @@
 import {isNullOrUndefined, isObject} from "util";
 import * as fs from 'fs';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 
 
 export function loadConfig(firstProvider: ConfigurationProvider): ConfigurationLoader {
@@ -37,15 +37,15 @@ export interface ConfigurationProvider {
 }
 
 export class EnvironmentVariableProvider implements ConfigurationProvider {
-    getProperty(property: string): any {
-        try {
-            const envVar = property.split(".").map(s => s.toUpperCase().trim()).join("_");
-            return process.env[envVar];
-        } catch (e) {
-            if (e instanceof ReferenceError) {
-                throw new Error("EnvironmentVariableProvider is only usable on a NodeJS runtime");
-            }
+    constructor() {
+        if (typeof process === 'undefined') {
+            throw new Error("FileProvider is only usable on a NodeJS runtime");
         }
+    }
+
+    getProperty(property: string): any {
+        const envVar = property.split(".").map(s => s.toUpperCase().trim()).join("_");
+        return process.env[envVar];
     }
 
 }
@@ -55,15 +55,11 @@ export class FileProvider implements ConfigurationProvider {
     private charset: string;
 
     constructor(filepath: string, charset: string = 'utf8') {
-        try {
-            const _ = process.env;
-            this.filePath = filepath;
-            this.charset = charset;
-        } catch (e) {
-            if (e instanceof ReferenceError) {
-                throw new Error("FileProvider is only usable on a NodeJS runtime");
-            }
+        if (typeof process === 'undefined') {
+            throw new Error("FileProvider is only usable on a NodeJS runtime");
         }
+        this.filePath = filepath;
+        this.charset = charset;
     }
 
     getProperty(property: string): any {
@@ -112,4 +108,8 @@ function getPropertyFromObject(object: Object, property: string) {
         }
     }
     return undefined;
+}
+
+export function loadYaml(filename: string, charset: string = 'utf8'): any {
+    return yaml.safeLoad(fs.readFileSync(filename, charset));
 }
