@@ -24,11 +24,12 @@ module.exports = AntiFlood*/
 @injectable()
 export default class AntiFoodServiceImpl implements IAntifloodService {
     private users: User[];
+
     constructor() {
 
     }
 
-    public isFlooding(userId: string): boolean {
+    public isFlooding(userId: string | number): boolean {
         return false;
     }
 }

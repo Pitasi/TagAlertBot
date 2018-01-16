@@ -17,6 +17,7 @@ import * as path from "path";
 import {User} from "./entity/user";
 import {Repository} from "typeorm";
 import {Group} from "./entity/group";
+import {Message, User as TgUser} from 'telegram-typings'
 
 @injectable()
 class TagAlertBot implements IBot {
@@ -73,7 +74,7 @@ class TagAlertBot implements IBot {
 
     private async registerSelf() {
         try {
-            const botInfo = await this.bot.telegram.getMe();
+            const botInfo: TgUser = await this.bot.telegram.getMe();
             console.dir(botInfo);
             console.log("================");
             this.bot.options.id = botInfo.id;
@@ -88,7 +89,7 @@ class TagAlertBot implements IBot {
 
         /* Start Command*/
         this.bot.command('start', async (ctx) => {
-            const message = ctx.message;
+            const message: Message = ctx.message;
             console.log("Message", message);
             if (message.chat.type !== 'private') return;
 
@@ -117,7 +118,7 @@ class TagAlertBot implements IBot {
 
     private async registerOnMessage(userRepository: Repository<User>, groupRepository: Repository<Group>) {
         this.bot.on('message', async (ctx) => {
-            const message = ctx.message;
+            const message: Message = ctx.message;
             const from = message.from;
             // console.dir(from);
             if (from.is_bot) return;
@@ -131,7 +132,7 @@ class TagAlertBot implements IBot {
             await userRepository.save(newUser);
 
             if (message.left_chat_member) {
-                let userId = message.left_chat_member.id
+                let userId = message.left_chat_member.id;
                 if (userId == this.bot.myId)
                     groupRepository.deleteById(message.chat.id);
                 else {

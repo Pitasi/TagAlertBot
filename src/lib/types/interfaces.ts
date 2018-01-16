@@ -10,5 +10,5 @@ export interface IDatabaseService {
 }
 
 export interface IAntifloodService {
-    isFlooding(userId: string): boolean;
+    isFlooding(userId: string | number): boolean;
 }

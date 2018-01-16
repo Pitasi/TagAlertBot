@@ -2469,6 +2469,10 @@ telegraf@^3.17.3:
     node-fetch "^1.6.3"
     sandwich-stream "^1.0.0"
 
+telegram-typings@^0.3.5-3:
+  version "0.3.5-3"
+  resolved "https://registry.yarnpkg.com/telegram-typings/-/telegram-typings-0.3.5-3.tgz#7b8e4672509390e3f6a76df6ee152626278d0bab"
+
 thenify-all@^1.0.0:
   version "1.6.0"
   resolved "https://registry.yarnpkg.com/thenify-all/-/thenify-all-1.6.0.tgz#1a1918d402d8fc3f98fbf234db0bcc8cc10e9726"
