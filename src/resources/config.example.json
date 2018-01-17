@@ -1,4 +1,5 @@
 {
+  "debug": false,
   "bot": {
     "token": "TOKEN",
     "db": {

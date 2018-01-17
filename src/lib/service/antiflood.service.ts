@@ -1,6 +1,7 @@
 import {User} from "../entity/user";
 import {injectable} from "inversify";
 import {IAntifloodService} from "../types/interfaces";
+import {Message} from "telegram-typings";
 
 /*function AntiFlood() {
     this.users = {}
@@ -22,11 +23,25 @@ import {IAntifloodService} from "../types/interfaces";
 module.exports = AntiFlood*/
 
 @injectable()
-export default class AntiFoodServiceImpl implements IAntifloodService {
+export default class AntiFloodServiceImpl implements IAntifloodService {
     private users: User[];
+    private messages: Object = {};
 
     constructor() {
 
+    }
+
+    public isBotFlooding(message: Message): boolean {
+        const ms = `${message.chat.id}`;
+        if (this.messages.hasOwnProperty(ms)) {
+            for(let m of this.messages[ms]) {
+                console.log("Messages", this.messages);
+                return false;
+            }
+        } else {
+            this.messages[ms][`${message.message_id}`] = message.date;
+            return false;
+        }
     }
 
     public isFlooding(userId: string | number): boolean {
