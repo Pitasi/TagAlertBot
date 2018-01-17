@@ -5,4 +5,3 @@ node_modules/
 dist/
 migration.config.js
 src/resources/config.json
-src/resources/database.config.js

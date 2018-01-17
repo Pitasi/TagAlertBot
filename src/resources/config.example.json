@@ -1,0 +1,13 @@
+{
+  "bot": {
+    "token": "TOKEN",
+    "db": {
+      "host": "localhost",
+      "port": 5432, 
+      "database": "tagalert",
+      "username": "postgres",
+      "password": "password",
+      "migrations": "migrations (name of the directory where migrations are stored. Should be right under dist/)"
+    }
+  }
+}

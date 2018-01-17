@@ -1,26 +1,19 @@
 ///<reference path="util/config.util.ts"/>
 import {inject, injectable} from "inversify";
-import {logger} from "./logger";
 import {TYPES} from "./types/types";
 import * as Telegraf from 'telegraf';
 import * as Extra from "telegraf/extra.js"
 import {IAntifloodService, IBot, IDatabaseService} from "./types/interfaces";
-import {
-    ConfigurationLoader,
-    EnvironmentVariableProvider,
-    FileProvider,
-    loadConfig,
-    loadYaml,
-    ObjectProvider
-} from "./util/config.util";
+import {ConfigurationLoader, loadYaml} from "./util/config.util";
 import * as path from "path";
 import {User} from "./entity/user";
 import {Repository} from "typeorm";
 import {Group} from "./entity/group";
-import {Message, User as TgUser, MessageEntity, Chat} from 'telegram-typings'
+import {Message, MessageEntity, User as TgUser} from 'telegram-typings'
 import Optional from "typescript-optional";
-import has = Reflect.has;
-import {message} from "gulp-typescript/release/utils";
+import * as winston from "winston";
+import * as memoize from 'memoizee';
+import * as util from 'util';
 
 @injectable()
 class TagAlertBot implements IBot {
@@ -29,19 +22,16 @@ class TagAlertBot implements IBot {
     private bot: any;
     private config: ConfigurationLoader;
     private strings: any;
+    private logger: winston.Winston;
 
     public constructor(@inject(TYPES.DatabaseService) databaseService: IDatabaseService,
-                       @inject(TYPES.AntifloodService) antifloodService: IAntifloodService) {
+                       @inject(TYPES.AntifloodService) antifloodService: IAntifloodService,
+                       @inject(TYPES.ConfigurationLoader) configurationLoader: ConfigurationLoader,
+                       @inject(TYPES.Logger) logger: winston.Winston) {
         this.databaseService = databaseService;
         this.antifloodService = antifloodService;
-        this.config = loadConfig(new EnvironmentVariableProvider())
-            .orElse(new FileProvider(path.resolve(__dirname, "..", "resources", "config.json")))
-            .orElse(new ObjectProvider({
-                bot: {
-                    msg_timeout: 25,
-                }
-            }));
-
+        this.config = configurationLoader;
+        this.logger = logger;
         this.strings = loadYaml(path.resolve(__dirname, "..", "resources", "replies.yml"))
     }
 
@@ -49,9 +39,8 @@ class TagAlertBot implements IBot {
         try {
             const done = await this.databaseService.applyAllMigrations();
             if (done) {
-
             } else {
-                logger.error("Something went wrong applying migrations.");
+                this.logger.error("Something went wrong applying migrations.");
                 process.exit(1);
             }
             const userRepository: Repository<User> = await this.databaseService.getRepository(User);
@@ -59,16 +48,23 @@ class TagAlertBot implements IBot {
 
             await this.bootstrap({userRepository: userRepository, groupRepository: groupRepository});
 
-            logger.info("starting TagAlertBot");
+            this.logger.info("starting TagAlertBot");
             this.bot.startPolling();
         } catch (e) {
-            logger.error(e);
+            this.logger.error(e);
         }
     }
 
     private async bootstrap(params: { userRepository: Repository<User>, groupRepository: Repository<Group> }) {
         const token = await this.config.load("bot.token");
         this.bot = new Telegraf(token);
+        this.bot.use((ctx, next) => {
+            ctx.cache = {
+                getChatMember: memoize(ctx.getChatMember, {promise: 'then', maxAge: 24 * 60 * 60 * 1000})
+            };
+            return next(ctx);
+        });
+
         await this.registerSelf();
         await this.registerCommands(params.userRepository, params.groupRepository);
         await this.registerOnMessage(params.userRepository, params.groupRepository);
@@ -78,7 +74,7 @@ class TagAlertBot implements IBot {
     private async registerSelf() {
         try {
             const botInfo: TgUser = await this.bot.telegram.getMe();
-            logger.debug("bot informations:\n", JSON.stringify(botInfo, null, 2));
+            this.logger.debug("bot informations:\n", JSON.stringify(botInfo, null, 2));
             this.bot.options.id = botInfo.id;
             this.bot.options.username = botInfo.username;
         } catch (e) {
@@ -105,7 +101,7 @@ class TagAlertBot implements IBot {
                 if (sender != undefined) group.users.push(sender);
 
                 await groupRepository.save(group);
-                logger.info("started in new group", group);
+                this.logger.info("started in new group", group);
                 return;
             }
 
@@ -142,10 +138,7 @@ class TagAlertBot implements IBot {
 
     private async registerOnMessage(userRepository: Repository<User>, groupRepository: Repository<Group>) {
         this.bot.on('message', async (ctx) => {
-            // const chatMember = await ctx.getChatMember(81841319);
-            // console.log("ChatMember", chatMember);
             const message: Message = ctx.message;
-            // console.log("Incoming\n", message);
             const from = message.from;
             if (from.is_bot) return;
             if (message.chat.type !== 'private') {
@@ -204,7 +197,7 @@ class TagAlertBot implements IBot {
                     }*/
 
                     if (!this.isEqual(from.username, username)) {
-                        await this.notifyUser(message.chat, username, null, userRepository, groupRepository);
+                        await this.notifyUser(ctx, username, null, userRepository, groupRepository);
                         // db.notifyUser(bot, username, msg, false)
                     }
                 })
@@ -229,7 +222,7 @@ class TagAlertBot implements IBot {
         const matched = message.caption.match(/@[a-z0-9]*!/gi);
         if (matched != null) {
             for (let i in matched) {
-                logger.debug("processing caption for ", {usernames: matched}, "message:", message);
+                this.logger.debug("processing caption for ", {usernames: matched}, "message:", message);
                 const username = matched[i].trim().substring(1).toLowerCase();
                 toBeNotified.add(username);
             }
@@ -238,22 +231,22 @@ class TagAlertBot implements IBot {
 
     private handleMentions(toBeNotified: Set<String>, message: Message, entity: MessageEntity) {
         const username = this.extract(message, entity);
-        logger.debug("processing", {mention: username}, "message:", message);
+        this.logger.debug("processing", {mention: username}, "message:", message);
         toBeNotified.add(username);
     }
 
     private handleHashtags(message: Message, entity: MessageEntity) {
         const hashtag = this.extract(message, entity);
-        logger.debug("processing", {hashtag: hashtag}, "message:", message);
+        this.logger.debug("processing", {hashtag: hashtag}, "message:", message);
         switch (hashtag) {
             case 'everyone':
-                logger.info("received hashtag 'everyone'");
+                this.logger.info("received hashtag 'everyone'");
                 /*db.getSetting('everyone', msg.chat.id, () => {
                     db.notifyEveryone(bot, msg.from.id, msg.chat.id, msg)
                 })*/
                 break;
             case 'admin':
-                logger.info("received hashtag 'admin'");
+                this.logger.info("received hashtag 'admin'");
                 /*db.getSetting('admin', msg.chat.id, () => {
                     bot.getChatAdministrators(msg.chat.id).then((admins) => {
                         admins.forEach((admin) => {
@@ -267,106 +260,59 @@ class TagAlertBot implements IBot {
         }
     }
 
-    private async notifyUser(chat: Chat, username: string, message: any, userRepository: Repository<User>, groupRepository: Repository<Group>) {
-        logger.debug("notifying", {user: username, message: message, chat: chat});
-        const user = await userRepository.createQueryBuilder("user")
-            .leftJoin("user.groups", "group" )
-            .where("user.username = :username", {username: username})
-            .andWhere("group.groupId = :groupId", {groupId: chat.id})
-            .getOne();
-        console.log("Notifying\n", user);
+    private async notifyUser(ctx: any, username: string, userRepository: Repository<User>, groupRepository: Repository<Group>) {
+        const message = ctx.message as Message;
+        const from = message.from;
+        this.logger.debug("notifying", {user: username, chat: message.chat});
+        const user = await userRepository.findOne({where: {username: username}, select: ["id"]});
+        const member = await ctx.cache.getChatMember(user.id);
+        if (member.status === 'left' || member.status === 'kicked'
+            || member.status === 'member') { // this one should be removed
+            this.logger.info("User has left the group or has been kicked. Will not be notified.",
+                {group: message.chat.id, user: member.user});
+            return;
+        } else {
+            const fromMessage = util.format('%s %s %s',
+                from.first_name,
+                from.last_name ? from.last_name : '',
+                from.username ? `(@${from.username})` : ''
+            );
 
+
+        }
     }
 }
 
 export {TagAlertBot};
 
+/*
+if (res.status == 'left' || res.status == 'kicked') return
+                // User is inside in the group
+                var from = util.format('%s %s %s',
+                    msg.from.first_name,
+                    msg.from.last_name ? msg.from.last_name : '',
+                    msg.from.username ? `(@${msg.from.username})` : ''
+                )
+                var btn = {inline_keyboard: [[{text: replies.retrieve}]]}
+                if (msg.chat.username)
+                    btn.inline_keyboard[0][0].url = `telegram.me/${msg.chat.username}/${msg.message_id}`
+                else
+                    btn.inline_keyboard[0][0].callback_data = `/retrieve_${msg.message_id}_${-msg.chat.id}`
 
-/*db.addUser(msg.from.username, msg.from.id, msg.chat.id)
-
-   // A user left the chat
-   if (msg.left_chat_member) {
-   let userId = msg.left_chat_member.id
-   if (userId == bot.myId)
-   db.removeGroup(msg.chat.id)
-   else {
-   db.removeUserFromGroup(userId, msg.chat.id)
-   bot.cachedGetChatMember.delete(msg.chat.id, msg.from.id) // ensure we remove the cache for this user
-}
-return
-}
-
-if (
-   (msg.chat.type !== 'group' && msg.chat.type !== 'supergroup') ||
-   (msg.forward_from && msg.forward_from.id == bot.myId)
-) return
-
-let toBeNotified = new Set() // avoid duplicate notifications if tagged twice
-
-// Text messages
-if (msg.text && msg.entities) {
-   // Extract (hash)tags from message text
-   let extract = (entity) => {
-       return msg.text
-           .substring(entity.offset + 1, entity.offset + entity.length)
-           .toLowerCase()
-   }
-
-   for (let i in msg.entities) {
-       let entity = msg.entities[i]
-
-       // Tags
-       if (entity.type === 'mention') {
-           let username = extract(entity)
-           toBeNotified.add(username)
-       }
-
-       // Hashtags
-       else if (entity.type === 'hashtag') {
-           let hashtag = extract(entity)
-           if (hashtag === 'everyone') {
-               db.getSetting('everyone', msg.chat.id, () => {
-                   db.notifyEveryone(bot, msg.from.id, msg.chat.id, msg)
-               })
-           }
-           else if (hashtag === 'admin') {
-               db.getSetting('admin', msg.chat.id, () => {
-                   bot.getChatAdministrators(msg.chat.id).then((admins) => {
-                       admins.forEach((admin) => {
-                           db.notifyUser(bot, admin.user.id, msg, false)
-                       })
-                   })
-               })
-           }
-       }
-
-       // Users without username
-       else if (entity.user)
-           db.notifyUser(bot, entity.user.id, msg, false)
-   }
-}
-
-// Images/media captions
-else if (msg.caption) {
-   let matched = msg.caption.match(/@[a-z0-9]*!/gi)
-   for (let i in matched) {
-       let username = matched[i].trim().substring(1).toLowerCase()
-       toBeNotified.add(username)
-   }
-}
-
-else return
-
-// helpful to check if user is tagging himself
-let isEqual = (u1, u2) => {
-   if (u1 && u2) return u1.toLowerCase() === u2.toLowerCase()
-   else return false
-}
-
-// let's really send notifications
-toBeNotified.forEach((username) => {
-   // check if user is tagging himself
-   if (!isEqual(msg.from.username, username) || DEBUG) {
-       db.notifyUser(bot, username, msg, false)
-   }
-})*/
+                if (msg.photo) {
+                    let final_text = util.format(replies.main_caption, sanitize(from), sanitize(msg.chat.title), sanitize(msg.caption))
+                    const file_id = msg.photo[0].file_id
+                    if (final_text.length > 200) final_text = final_text.substr(0, 197) + '...'
+                    bot.sendPhoto(userId, file_id, {caption: final_text, reply_markup: btn})
+                }
+                else {
+                    let final_text = util.format(replies.main_text, sanitize(from), sanitize(msg.chat.title), sanitize(msg.text))
+                    bot.sendMessage(userId,
+                        final_text,
+                        {
+                            parse_mode: 'HTML',
+                            reply_markup: btn,
+                            disable_notification: silent
+                        })
+                }
+ */

@@ -1,20 +1,27 @@
-import {injectable} from "inversify";
+import {inject, injectable} from "inversify";
 import * as Postgrator from "postgrator";
-import {logger} from "../logger";
-import * as dbconfig from "../../resources/database.config.js";
 import {Connection, createConnection, ObjectType, Repository} from "typeorm";
 import {User} from "../entity/user";
 import {Group} from "../entity/group";
 import {IDatabaseService} from "../types/interfaces";
+import {ConfigurationLoader} from "../util/config.util";
+import {TYPES} from "../types/types";
+import * as path from "path";
+import * as winston from "winston";
 
 @injectable()
 export class DatabaseServiceImpl implements IDatabaseService {
     private postgrator: any;
     private connection: Promise<Connection>;
+    private logger: winston.Winston;
 
-    public constructor() {
+    public constructor(@inject(TYPES.ConfigurationLoader) configurationLoader: ConfigurationLoader,
+                       @inject(TYPES.Logger) logger: winston.Winston) {
+        this.logger = logger;
+        const dbconfig = configurationLoader.loadSync("bot.db");
+        const migrationDirectory = path.resolve(__dirname, "..", "..", dbconfig.migrations);
         const postgratorOpts = {
-            migrationDirectory: dbconfig.migrations,
+            migrationDirectory: migrationDirectory,
             schemaTable: "schema_version",
             driver: "pg",
             host: dbconfig.host,
@@ -25,10 +32,22 @@ export class DatabaseServiceImpl implements IDatabaseService {
         };
 
         this.postgrator = new Postgrator(postgratorOpts);
-        this.postgrator.on('validation-started', migration => logger.info("validating migration", { version: migration.version, name: migration.name }));
-        this.postgrator.on('validation-finished', migration => logger.info("validated migration", { version: migration.version, name: migration.name }));
-        this.postgrator.on('migration-started', migration => logger.info("starting migration", { version: migration.version, name: migration.name }));
-        this.postgrator.on('migration-finished', migration => logger.info("finishing migration", { version: migration.version, name: migration.name }));
+        this.postgrator.on('validation-started', migration => this.logger.info("validating migration", {
+            version: migration.version,
+            name: migration.name
+        }));
+        this.postgrator.on('validation-finished', migration => this.logger.info("validated migration", {
+            version: migration.version,
+            name: migration.name
+        }));
+        this.postgrator.on('migration-started', migration => this.logger.info("starting migration", {
+            version: migration.version,
+            name: migration.name
+        }));
+        this.postgrator.on('migration-finished', migration => this.logger.info("finishing migration", {
+            version: migration.version,
+            name: migration.name
+        }));
         this.connection = createConnection({
             type: "postgres",
             host: dbconfig.host,
@@ -43,16 +62,17 @@ export class DatabaseServiceImpl implements IDatabaseService {
             synchronize: false,
             logging: false
         });
+
     }
 
     public async applyAllMigrations(): Promise<boolean> {
         try {
-            logger.info("running SQL migrations");
+            this.logger.info("running SQL migrations");
             await this.postgrator.migrate();
             return true;
         } catch (e) {
-            logger.debug(e);
-            logger.error(`${e.message}\n${e.appliedMigrations}`);
+            this.logger.debug(e);
+            this.logger.error(`${e.message}\n${e.appliedMigrations}`);
             return false
         }
 

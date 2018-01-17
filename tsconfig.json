@@ -17,6 +17,7 @@
     "emitDecoratorMetadata": true,
     "moduleResolution": "node",
     "module": "commonjs",
-    "declaration": true
+    "declaration": true,
+    "sourceMap": true
   }
 }

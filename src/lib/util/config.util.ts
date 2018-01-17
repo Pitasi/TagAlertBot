@@ -28,6 +28,17 @@ export class ConfigurationLoader {
         });
 
     }
+
+    loadSync(property: string): any {
+        for (let i in this.providers) {
+            const provider = this.providers[i];
+            const retrieved = provider.getProperty(property);
+            if (!isNullOrUndefined(retrieved) && "" != retrieved) {
+                return retrieved;
+            }
+        }
+        return "";
+    }
 }
 
 export interface ConfigurationProvider {
@@ -103,7 +114,7 @@ function getPropertyFromObject(object: Object, property: string) {
     let current: any = object;
     for (let p of slices) {
         current = current[p];
-        if (!isObject(current)) {
+        if (slices.indexOf(p) + 1 === slices.length) {
             return current;
         }
     }

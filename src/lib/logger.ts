@@ -21,10 +21,11 @@ const logger = createLogger({
 
 import * as winston from "winston";
 
-const logger = winston;
 
-logger.configure({
-    level: "debug",
-    transports: [new logger.transports.Console({colorize: true})],
-});
-export {logger};
+export function createLogger(options: winston.LoggerOptions): winston.Winston {
+    const logger = winston;
+    logger.configure(options);
+    return logger;
+
+}
+
